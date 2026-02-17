@@ -89,10 +89,13 @@ jobs:
           }
         shell: powershell
 
-      - name: Upload artifacts to GitHub Release
+      - name: Upload Windows artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/**/*
+          files: |
+            release/*.exe
+            release/*.msi
+            release/*.exe.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
@@ -151,10 +154,13 @@ jobs:
             npx electron-builder --mac --${{ matrix.arch }} --publish never
           fi
 
-      - name: Upload artifacts to GitHub Release
+      - name: Upload macOS artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/**/*
+          files: |
+            release/*.dmg
+            release/*.dmg.blockmap
+            release/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -188,9 +194,12 @@ jobs:
       - name: Build linux artifacts
         run: npx electron-builder --linux --${{ matrix.arch }} --publish never
 
-      - name: Upload artifacts to GitHub Release
+      - name: Upload Linux artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/**/*
+          files: |
+            release/*.AppImage
+            release/*.deb
+            release/*.AppImage.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
