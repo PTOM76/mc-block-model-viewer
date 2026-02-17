@@ -106,7 +106,12 @@ jobs:
             Write-Host "No CSC_LINK secret provided"
           }
 
-          $canSign = ($Env:CSC_LINK -and (Test-Path $Env:CSC_LINK))
+          $canSign = $false
+          if (-not [string]::IsNullOrEmpty($Env:CSC_LINK)) {
+             if (Test-Path $Env:CSC_LINK) {
+                $canSign = $true
+             }
+          }
 
           if ($canSign) {
             Write-Host "Valid signing material found — building signed installers"
