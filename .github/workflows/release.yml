@@ -76,7 +76,7 @@ jobs:
              $Env:CSC_KEY_PASSWORD = $pwd
           }
 
-          npx electron-builder --config electron-builder.json5 --win nsis zip --${{ matrix.arch }} --publish never
+          npx electron-builder --win nsis zip --${{ matrix.arch }} --publish never
 
           if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: powershell
