@@ -23,7 +23,6 @@ jobs:
       - name: Ensure npm cache dir exists (Windows)
         if: runner.os == 'Windows'
         run: |
-          working-directory: ${{ github.workspace }}
           powershell -Command "New-Item -ItemType Directory -Force -Path C:\\npm\\cache | Out-Null"
 
       - name: Cache npm
@@ -46,7 +45,6 @@ jobs:
       - name: Ensure electron cache dir exists (Windows)
         if: runner.os == 'Windows'
         run: |
-          working-directory: ${{ github.workspace }}
           powershell -Command "New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA\\electron\\Cache | Out-Null"
 
       - name: Ensure npm cache dir exists (mac/linux)
@@ -64,7 +62,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          working-directory: ${{ github.workspace }}
+          cd $env:GITHUB_WORKSPACE
           if (Test-Path package-lock.json) {
             npm ci
           } else {
@@ -73,13 +71,15 @@ jobs:
         shell: powershell
 
       - name: Build renderer
-        run: npm run build
+        run: |
+          cd $env:GITHUB_WORKSPACE
+          npm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build installers (signed if valid `CSC_LINK` present)
         run: |
-          working-directory: ${{ github.workspace }}
+          cd $env:GITHUB_WORKSPACE
           $raw = '${{ secrets.CSC_LINK }}'
           $pwd = '${{ secrets.CSC_KEY_PASSWORD }}'
 
@@ -124,7 +124,7 @@ jobs:
 
       - name: Show release directory contents (Windows)
         run: |
-          working-directory: ${{ github.workspace }}
+          cd $env:GITHUB_WORKSPACE
           Write-Host "Listing release directory:"
           Get-ChildItem -Recurse -Path ./release | Format-List
         shell: powershell
