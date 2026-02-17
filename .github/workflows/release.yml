@@ -74,16 +74,43 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build installers (signed if secrets present)
+      - name: Build installers (signed if valid `CSC_LINK` present)
         run: |
-          $Env:CSC_LINK = '${{ secrets.CSC_LINK }}'
-          $Env:CSC_KEY_PASSWORD = '${{ secrets.CSC_KEY_PASSWORD }}'
-          if ($Env:CSC_LINK -and $Env:CSC_KEY_PASSWORD) {
-            Write-Host "CSC_LINK provided — building signed installers"
+          $raw = '${{ secrets.CSC_LINK }}'
+          $pwd = '${{ secrets.CSC_KEY_PASSWORD }}'
+
+          if (-not [string]::IsNullOrEmpty($raw)) {
+            if ($raw -like 'base64:*') {
+              $b64 = $raw -replace '^base64:', ''
+              $out = Join-Path $env:TEMP 'ci-sign-cert.p12'
+              [IO.File]::WriteAllBytes($out, [Convert]::FromBase64String($b64))
+              Write-Host "Wrote base64 CSC_LINK to $out"
+              $Env:CSC_LINK = $out
+            } elseif ($raw -match '^https?://') {
+              $out = Join-Path $env:TEMP 'ci-sign-cert.p12'
+              Invoke-WebRequest -Uri $raw -OutFile $out -UseBasicParsing
+              Write-Host "Downloaded CSC_LINK from URL to $out"
+              $Env:CSC_LINK = $out
+            } elseif (Test-Path $raw) {
+              Write-Host "CSC_LINK points to existing file: $raw"
+              $Env:CSC_LINK = $raw
+            } else {
+              Write-Host "CSC_LINK provided but not recognized as base64/url/file: will skip signing"
+              $Env:CSC_LINK = ''
+            }
+          } else {
+            Write-Host "No CSC_LINK secret provided"
+          }
+
+          $canSign = ($Env:CSC_LINK -and (Test-Path $Env:CSC_LINK))
+
+          if ($canSign) {
+            Write-Host "Valid signing material found — building signed installers"
+            $Env:CSC_KEY_PASSWORD = $pwd
             npx electron-builder --win nsis --${{ matrix.arch }} --publish never
             npx electron-builder --win msi --${{ matrix.arch }} --publish never
           } else {
-            Write-Host "No CSC_LINK — building unsigned installers"
+            Write-Host "No valid signing material — building unsigned installers"
             npx electron-builder --win nsis --${{ matrix.arch }} --publish never
             npx electron-builder --win msi --${{ matrix.arch }} --publish never
           }
@@ -140,17 +167,48 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build mac artifacts (signed if secrets present)
+      - name: Build mac artifacts (signed if valid `CSC_LINK` present)
         run: |
-          export CSC_LINK='${{ secrets.CSC_LINK }}'
-          export CSC_KEY_PASSWORD='${{ secrets.CSC_KEY_PASSWORD }}'
+          raw='${{ secrets.CSC_LINK }}'
+          pwd='${{ secrets.CSC_KEY_PASSWORD }}'
           export APPLE_ID='${{ secrets.APPLE_ID }}'
           export APPLE_PASSWORD='${{ secrets.APPLE_PASSWORD }}'
-          if [ -n "$CSC_LINK" ] && [ -n "$CSC_KEY_PASSWORD" ]; then
-            echo "CSC_LINK provided — building signed mac artifact"
+
+          if [ -n "$raw" ]; then
+            case "$raw" in
+              base64:*)
+                b64=${raw#base64:}
+                out=/tmp/ci-sign-cert.p12
+                printf '%s' "$b64" | base64 -d > "$out"
+                echo "Wrote base64 CSC_LINK to $out"
+                export CSC_LINK="$out"
+                ;;
+              http://*|https://*)
+                out=/tmp/ci-sign-cert.p12
+                curl -fsSL "$raw" -o "$out" || { echo 'Failed to download CSC_LINK'; unset CSC_LINK; }
+                echo "Downloaded CSC_LINK to $out"
+                export CSC_LINK="$out"
+                ;;
+              *)
+                if [ -f "$raw" ]; then
+                  export CSC_LINK="$raw"
+                  echo "CSC_LINK points to existing file: $raw"
+                else
+                  echo "CSC_LINK provided but not recognized as base64/url/file: will skip signing"
+                  unset CSC_LINK
+                fi
+                ;;
+            esac
+          else
+            echo "No CSC_LINK secret provided"
+          fi
+
+          if [ -n "$CSC_LINK" ] && [ -f "$CSC_LINK" ]; then
+            export CSC_KEY_PASSWORD="$pwd"
+            echo "Valid signing material found — building signed mac artifact"
             npx electron-builder --mac --${{ matrix.arch }} --publish never
           else
-            echo "No CSC_LINK — building unsigned mac artifact"
+            echo "No valid signing material — building unsigned mac artifact"
             npx electron-builder --mac --${{ matrix.arch }} --publish never
           fi
 
