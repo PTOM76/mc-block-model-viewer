@@ -81,10 +81,11 @@ function createBatchExportDialog() {
 
   batchDialogWin.setMenu(null);
 
-  const dialogHtml = fs.readFileSync(
-    path.join(__dirname, '../electron/batch-dialog.html'),
-    'utf-8'
-  );
+  const dialogPath = VITE_DEV_SERVER_URL 
+    ? path.join(__dirname, '../electron/batch-dialog.html')
+    : path.join(app.getAppPath(), 'electron/batch-dialog.html');
+  
+  const dialogHtml = fs.readFileSync(dialogPath, 'utf-8');
 
   batchDialogWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(dialogHtml));
   
