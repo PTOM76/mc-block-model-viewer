@@ -29,7 +29,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/electron
             ${{ env.LOCALAPPDATA }}\\electron\\Cache
           key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
           restore-keys: |
@@ -37,6 +36,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Cache electron build cache (mac/linux)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
 
       - name: Build renderer
         run: npm run build
