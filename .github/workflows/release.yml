@@ -48,6 +48,7 @@ jobs:
       - name: Build installers
         run: |
           $ErrorActionPreference = 'Stop'
+
           $raw = '${{ secrets.CSC_LINK }}'
           $pwd = '${{ secrets.CSC_KEY_PASSWORD }}'
           $Env:CSC_LINK = $null
@@ -75,11 +76,9 @@ jobs:
              $Env:CSC_KEY_PASSWORD = $pwd
           }
 
-          npx electron-builder --config electron-builder.json5 -c.directories.output=release --win nsis zip --${{ matrix.arch }} --publish never
-          
-          if ($LASTEXITCODE -ne 0) { 
-            exit 1 
-          }
+          npx electron-builder --config electron-builder.json5 --win nsis zip --${{ matrix.arch }} --publish never
+
+          if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: powershell
 
       - name: Upload Windows artifacts to GitHub Release
