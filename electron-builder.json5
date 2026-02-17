@@ -20,7 +20,7 @@
   "win": {
     "target": [
       "nsis",
-      "msi"
+      "zip"
     ],
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },

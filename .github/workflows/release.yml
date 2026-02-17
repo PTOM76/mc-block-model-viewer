@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Ensure npm cache dir exists (Windows)
         if: runner.os == 'Windows'
@@ -108,11 +108,11 @@ jobs:
             Write-Host "Valid signing material found — building signed installers"
             $Env:CSC_KEY_PASSWORD = $pwd
             npx electron-builder --win nsis --${{ matrix.arch }} --publish never
-            npx electron-builder --win msi --${{ matrix.arch }} --publish never
+            npx electron-builder --win zip --${{ matrix.arch }} --publish never
           } else {
             Write-Host "No valid signing material — building unsigned installers"
             npx electron-builder --win nsis --${{ matrix.arch }} --publish never
-            npx electron-builder --win msi --${{ matrix.arch }} --publish never
+            npx electron-builder --win zip --${{ matrix.arch }} --publish never
           }
         shell: powershell
 
@@ -121,8 +121,7 @@ jobs:
         with:
           files: |
             release/*.exe
-            release/*.msi
-            release/*.exe.blockmap
+            release/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
@@ -138,7 +137,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install dependencies
         run: |
@@ -216,9 +215,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/*.dmg
-            release/*.dmg.blockmap
-            release/*.zip
+            release/**/*.dmg
+            release/**/*.dmg.blockmap
+            release/**/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -234,7 +233,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install dependencies
         run: |
@@ -256,8 +255,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/*.AppImage
-            release/*.deb
-            release/*.AppImage.blockmap
+            release/**/*.AppImage
+            release/**/*.deb
+            release/**/*.AppImage.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

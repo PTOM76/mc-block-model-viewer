@@ -47,12 +47,8 @@
     "win": {
       "icon": "public/icon.ico",
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
+        "nsis",
+        "zip"
       ]
     },
     "mac": {
