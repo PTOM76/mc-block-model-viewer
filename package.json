@@ -47,9 +47,15 @@
     "win": {
       "icon": "public/icon.ico",
       "target": [
-        "nsis",
-        "zip"
-      ]
+      {
+        "target": "nsis",
+        "artifactName": "${productName}-Installer-${version}-${arch}.${ext}"
+      },
+      {
+        "target": "zip",
+        "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+      }
+    ]
     },
     "mac": {
       "icon": "public/icon.icns",
