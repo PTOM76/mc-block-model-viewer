@@ -126,6 +126,18 @@ jobs:
           Get-ChildItem -Recurse -Path ./release | Format-List
         shell: powershell
 
+      - name: Debug search files
+        run: |
+          Write-Host "=========================================="
+          Write-Host "Current Directory: $(Get-Location)"
+          Write-Host "--- Root Directory Contents ---"
+          Get-ChildItem -Path . | Select-Object Name, Mode
+          
+          Write-Host "`n--- Searching for any .exe or .zip files (Recursively) ---"
+          Get-ChildItem -Path . -Recurse -Include *.exe,*.zip | Select-Object FullName, Length, CreationTime
+          Write-Host "=========================================="
+        shell: powershell
+
       - name: Upload Windows artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
