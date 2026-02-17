@@ -1,0 +1,154 @@
+:root {
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Avenir, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ダークテーマ */
+:root,
+:root[data-theme="dark"] {
+  --bg-color: #111111;
+  --text-color: #ffffff;
+  --border-color: #444444;
+  --button-bg: #333333;
+  --button-bg-hover: #3a3a3a;
+  --button-bg-active: #2a2a2a;
+  --button-border: #555555;
+  --selected-bg: #444444;
+  --hover-bg: #555555;
+}
+
+/* ライトテーマ */
+:root[data-theme="light"] {
+  --bg-color: #f5f5f5;
+  --text-color: #333333;
+  --border-color: #cccccc;
+  --button-bg: #e0e0e0;
+  --button-bg-hover: #d0d0d0;
+  --button-bg-active: #c0c0c0;
+  --button-border: #999999;
+  --selected-bg: #d0d0d0;
+  --hover-bg: #c0c0c0;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg-color: #f5f5f5;
+    --text-color: #333333;
+    --border-color: #cccccc;
+    --button-bg: #e0e0e0;
+    --button-bg-hover: #d0d0d0;
+    --button-bg-active: #c0c0c0;
+    --button-border: #999999;
+    --selected-bg: #d0d0d0;
+    --hover-bg: #c0c0c0;
+  }
+}
+
+button {
+  outline: none;
+  user-select: none;
+  cursor: default;
+  font-family: system-ui;
+
+  background-color: var(--button-bg);
+  color: var(--text-color);
+  border: 1px solid var(--button-border);
+  border-radius: 4px;
+  padding: 4px 4px;
+}
+
+button:hover {
+  background: var(--button-bg-hover);
+}
+
+button:active {
+  background: var(--button-bg-active);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+/* サイドバーボタン */
+.sidebar-button {
+  width: 100%;
+  margin-bottom: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-button.last {
+  margin-bottom: 8px;
+}
+
+/* フォーム要素 */
+.form-select,
+.form-input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  background-color: var(--button-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.form-select:hover,
+.form-input:hover {
+  border-color: var(--button-border) !important;
+}
+
+.form-select:focus,
+.form-input:focus {
+  outline: none;
+  border-color: #4C50AF !important;
+}
+
+/* ボタン */
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  border: none;
+}
+
+.btn-cancel {
+  border: 1px solid;
+}
+
+.btn-cancel:hover {
+  opacity: 0.8;
+}
+
+.btn-primary {
+  background: #4c6faf;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #4562a0;
+}
+
