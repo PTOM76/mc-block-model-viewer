@@ -22,8 +22,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+
+      - name: Ensure npm cache dir exists (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          powershell -Command "New-Item -ItemType Directory -Force -Path C:\\npm\\cache | Out-Null"
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: C:\\npm\\cache
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Cache electron build cache
         uses: actions/cache@v4
@@ -38,6 +49,19 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           powershell -Command "New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA\\electron\\Cache | Out-Null"
+
+      - name: Ensure npm cache dir exists (mac/linux)
+        if: runner.os != 'Windows'
+        run: mkdir -p ~/.npm
+
+      - name: Cache npm (mac/linux)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
