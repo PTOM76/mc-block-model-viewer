@@ -71,6 +71,8 @@ jobs:
 
       - name: Build renderer
         run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build installers (signed if secrets present)
         run: |
@@ -132,6 +134,8 @@ jobs:
 
       - name: Build renderer
         run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build mac artifacts (signed if secrets present)
         run: |
@@ -178,6 +182,8 @@ jobs:
 
       - name: Build renderer
         run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build linux artifacts
         run: npx electron-builder --linux --${{ matrix.arch }} --publish never
