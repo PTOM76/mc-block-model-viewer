@@ -46,16 +46,14 @@
     },
     "win": {
       "icon": "public/icon.ico",
-      "target": [
-      {
-        "target": "nsis",
-        "artifactName": "${productName}-Installer-${version}-${arch}.${ext}"
-      },
-      {
-        "target": "zip",
-        "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
-      }
-    ]
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}",
+      "target": ["nsis", "zip"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Block Model Viewer",
+      "artifactName": "${productName}-Installer-${version}-${arch}.${ext}"
     },
     "mac": {
       "icon": "public/icon.icns",
@@ -70,11 +68,6 @@
       "target": ["AppImage", "deb"],
       "category": "Development",
       "maintainer": "Pitan <admin@pitan76.net>"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Block Model Viewer"
     },
     "asar": true,
     "files": [
