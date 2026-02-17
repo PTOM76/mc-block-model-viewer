@@ -79,48 +79,47 @@ jobs:
 
       - name: Build installers (signed if valid `CSC_LINK` present)
         run: |
-          cd $env:GITHUB_WORKSPACE
+          $ErrorActionPreference = 'Stop'          
+
           $raw = '${{ secrets.CSC_LINK }}'
           $pwd = '${{ secrets.CSC_KEY_PASSWORD }}'
+          $Env:CSC_LINK = $null
 
           if (-not [string]::IsNullOrEmpty($raw)) {
-            if ($raw -like 'base64:*') {
-              $b64 = $raw -replace '^base64:', ''
-              $out = Join-Path $env:TEMP 'ci-sign-cert.p12'
-              [IO.File]::WriteAllBytes($out, [Convert]::FromBase64String($b64))
-              Write-Host "Wrote base64 CSC_LINK to $out"
-              $Env:CSC_LINK = $out
-            } elseif ($raw -match '^https?://') {
-              $out = Join-Path $env:TEMP 'ci-sign-cert.p12'
-              Invoke-WebRequest -Uri $raw -OutFile $out -UseBasicParsing
-              Write-Host "Downloaded CSC_LINK from URL to $out"
-              $Env:CSC_LINK = $out
-            } elseif (Test-Path $raw) {
-              Write-Host "CSC_LINK points to existing file: $raw"
-              $Env:CSC_LINK = $raw
-            } else {
-              Write-Host "CSC_LINK provided but not recognized as base64/url/file: will skip signing"
-              $Env:CSC_LINK = ''
+            Write-Host "Secrets provided. Processing certificate..."
+            try {
+              if ($raw -like 'base64:*') {
+                $b64 = $raw -replace '^base64:', ''
+                $out = Join-Path $env:TEMP 'ci-sign-cert.p12'
+                [IO.File]::WriteAllBytes($out, [Convert]::FromBase64String($b64))
+                $Env:CSC_LINK = $out
+              } elseif ($raw -match '^https?://') {
+                $out = Join-Path $env:TEMP 'ci-sign-cert.p12'
+                Invoke-WebRequest -Uri $raw -OutFile $out -UseBasicParsing
+                $Env:CSC_LINK = $out
+              } elseif (Test-Path $raw) {
+                $Env:CSC_LINK = $raw
+              }
+            } catch {
+              Write-Warning "Certificate processing failed: $_"
+              $Env:CSC_LINK = $null
             }
           } else {
-            Write-Host "No CSC_LINK secret provided"
+             Write-Host "No CSC_LINK secret provided. Skipping signing setup."
           }
-
-          $canSign = $false
+            
           if (-not [string]::IsNullOrEmpty($Env:CSC_LINK)) {
-             if (Test-Path $Env:CSC_LINK) {
-                $canSign = $true
-             }
-          }
-
-          if ($canSign) {
-            Write-Host "Valid signing material found — building signed installers"
-            $Env:CSC_KEY_PASSWORD = $pwd
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            npx electron-builder --config electron-builder.json5 --win nsis zip --${{ matrix.arch }} --publish never
+             Write-Host "Certificate setup complete: $Env:CSC_LINK"
+             $Env:CSC_KEY_PASSWORD = $pwd
           } else {
-            Write-Host "No valid signing material — building unsigned installers"
-            npx electron-builder --config electron-builder.json5 --win nsis zip --${{ matrix.arch }} --publish never
+             Write-Host "Building without signing."
+          }
+          
+          npx electron-builder --config electron-builder.json5 -c.directories.output=release --win nsis zip --${{ matrix.arch }} --publish never
+          
+          if ($LASTEXITCODE -ne 0) { 
+            Write-Error "Build failed with code: $LASTEXITCODE"
+            exit 1 
           }
         shell: powershell
 
@@ -129,18 +128,6 @@ jobs:
           cd $env:GITHUB_WORKSPACE
           Write-Host "Listing release directory:"
           Get-ChildItem -Recurse -Path ./release | Format-List
-        shell: powershell
-
-      - name: Debug search files
-        run: |
-          Write-Host "=========================================="
-          Write-Host "Current Directory: $(Get-Location)"
-          Write-Host "--- Root Directory Contents ---"
-          Get-ChildItem -Path . | Select-Object Name, Mode
-          
-          Write-Host "`n--- Searching for any .exe or .zip files (Recursively) ---"
-          Get-ChildItem -Path . -Recurse -Include *.exe,*.zip | Select-Object FullName, Length, CreationTime
-          Write-Host "=========================================="
         shell: powershell
 
       - name: Upload Windows artifacts to GitHub Release
