@@ -19,12 +19,8 @@
   },
   "win": {
     "target": [
-      {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      }
+      "nsis",
+      "msi"
     ],
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
