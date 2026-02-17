@@ -107,12 +107,14 @@ jobs:
           if ($canSign) {
             Write-Host "Valid signing material found — building signed installers"
             $Env:CSC_KEY_PASSWORD = $pwd
-            npx electron-builder --win nsis --${{ matrix.arch }} --publish never
-            npx electron-builder --win zip --${{ matrix.arch }} --publish never
+            npx electron-builder --projectDir=. --win nsis --${{ matrix.arch }} --publish never --log-level=debug
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            npx electron-builder --projectDir=. --win zip --${{ matrix.arch }} --publish never --log-level=debug
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } else {
             Write-Host "No valid signing material — building unsigned installers"
-            npx electron-builder --win nsis --${{ matrix.arch }} --publish never
-            npx electron-builder --win zip --${{ matrix.arch }} --publish never
+            npx electron-builder --projectDir=. --win nsis --${{ matrix.arch }} --publish never
+            npx electron-builder --projectDir=. --win zip --${{ matrix.arch }} --publish never
           }
         shell: powershell
 
