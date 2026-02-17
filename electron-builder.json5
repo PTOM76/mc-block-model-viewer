@@ -9,8 +9,7 @@
   },
   "files": [
     "dist",
-    "dist-electron",
-    "electron/batch-dialog.html"
+    "dist-electron"
   ],
   "mac": {
     "target": [

@@ -81,13 +81,11 @@ function createBatchExportDialog() {
 
   batchDialogWin.setMenu(null);
 
-  const dialogPath = VITE_DEV_SERVER_URL 
-    ? path.join(__dirname, '../electron/batch-dialog.html')
-    : path.join(app.getAppPath(), 'electron/batch-dialog.html');
-  
-  const dialogHtml = fs.readFileSync(dialogPath, 'utf-8');
-
-  batchDialogWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(dialogHtml));
+  if (VITE_DEV_SERVER_URL) {
+    batchDialogWin.loadURL(`${VITE_DEV_SERVER_URL}batch-dialog.html`);
+  } else {
+    batchDialogWin.loadFile(path.join(app.getAppPath(), 'dist/batch-dialog.html'));
+  }
   
   batchDialogWin.once('ready-to-show', () => {
     batchDialogWin?.show();
