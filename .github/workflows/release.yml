@@ -116,6 +116,12 @@ jobs:
           }
         shell: powershell
 
+      - name: Show release directory contents (Windows)
+        run: |
+          Write-Host "Listing release directory:"
+          Get-ChildItem -Recurse -Path ./release | Format-List
+        shell: powershell
+
       - name: Upload Windows artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
