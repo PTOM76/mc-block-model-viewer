@@ -20,45 +20,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: Ensure npm cache dir exists (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          powershell -Command "New-Item -ItemType Directory -Force -Path C:\\npm\\cache | Out-Null"
-
-      - name: Cache npm
-        uses: actions/cache@v4
-        with:
-          path: C:\\npm\\cache
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
       - name: Cache electron build cache
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ env.LOCALAPPDATA }}\\electron\\Cache
+          path: ${{ env.LOCALAPPDATA }}\electron\Cache
           key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-electron-
-
-      - name: Ensure electron cache dir exists (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          powershell -Command "New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA\\electron\\Cache | Out-Null"
-
-      - name: Ensure npm cache dir exists (mac/linux)
-        if: runner.os != 'Windows'
-        run: mkdir -p ~/.npm
-
-      - name: Cache npm (mac/linux)
-        if: runner.os != 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: |
@@ -77,16 +45,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build installers (signed if valid `CSC_LINK` present)
+      - name: Build installers
         run: |
-          $ErrorActionPreference = 'Stop'          
-
+          $ErrorActionPreference = 'Stop'
           $raw = '${{ secrets.CSC_LINK }}'
           $pwd = '${{ secrets.CSC_KEY_PASSWORD }}'
           $Env:CSC_LINK = $null
 
           if (-not [string]::IsNullOrEmpty($raw)) {
-            Write-Host "Secrets provided. Processing certificate..."
             try {
               if ($raw -like 'base64:*') {
                 $b64 = $raw -replace '^base64:', ''
@@ -101,33 +67,19 @@ jobs:
                 $Env:CSC_LINK = $raw
               }
             } catch {
-              Write-Warning "Certificate processing failed: $_"
               $Env:CSC_LINK = $null
             }
-          } else {
-             Write-Host "No CSC_LINK secret provided. Skipping signing setup."
           }
-            
+
           if (-not [string]::IsNullOrEmpty($Env:CSC_LINK)) {
-             Write-Host "Certificate setup complete: $Env:CSC_LINK"
              $Env:CSC_KEY_PASSWORD = $pwd
-          } else {
-             Write-Host "Building without signing."
           }
-          
+
           npx electron-builder --config electron-builder.json5 -c.directories.output=release --win nsis zip --${{ matrix.arch }} --publish never
           
           if ($LASTEXITCODE -ne 0) { 
-            Write-Error "Build failed with code: $LASTEXITCODE"
             exit 1 
           }
-        shell: powershell
-
-      - name: Show release directory contents (Windows)
-        run: |
-          cd $env:GITHUB_WORKSPACE
-          Write-Host "Listing release directory:"
-          Get-ChildItem -Recurse -Path ./release | Format-List
         shell: powershell
 
       - name: Upload Windows artifacts to GitHub Release
@@ -138,7 +90,7 @@ jobs:
             release/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
   build-mac:
     name: Build macOS
     runs-on: macos-latest
