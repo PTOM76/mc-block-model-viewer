@@ -19,10 +19,15 @@
   },
   "win": {
     "target": [
-      "nsis",
-      "zip"
-    ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+      {
+        "target": "nsis",
+        "artifactName": "${productName}-Windows-${version}-Setup.exe"
+      },
+      {
+        "target": "zip",
+        "artifactName": "${productName}-Windows-${version}-Portable.zip"
+      }
+    ]
   },
   "nsis": {
     "oneClick": false,
