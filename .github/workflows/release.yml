@@ -12,9 +12,6 @@ jobs:
     strategy:
       matrix:
         arch: [x64, arm64]
-    env:
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -75,11 +72,20 @@ jobs:
       - name: Build renderer
         run: npm run build
 
-      - name: Build NSIS installer
-        run: npx electron-builder --win nsis --${{ matrix.arch }} --publish never
-
-      - name: Build MSI installer
-        run: npx electron-builder --win msi --${{ matrix.arch }} --publish never
+      - name: Build installers (signed if secrets present)
+        run: |
+          $Env:CSC_LINK = '${{ secrets.CSC_LINK }}'
+          $Env:CSC_KEY_PASSWORD = '${{ secrets.CSC_KEY_PASSWORD }}'
+          if ($Env:CSC_LINK -and $Env:CSC_KEY_PASSWORD) {
+            Write-Host "CSC_LINK provided — building signed installers"
+            npx electron-builder --win nsis --${{ matrix.arch }} --publish never
+            npx electron-builder --win msi --${{ matrix.arch }} --publish never
+          } else {
+            Write-Host "No CSC_LINK — building unsigned installers"
+            npx electron-builder --win nsis --${{ matrix.arch }} --publish never
+            npx electron-builder --win msi --${{ matrix.arch }} --publish never
+          }
+        shell: powershell
 
       - name: Upload artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
@@ -94,11 +100,6 @@ jobs:
     strategy:
       matrix:
         arch: [x64, arm64]
-    env:
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -132,8 +133,19 @@ jobs:
       - name: Build renderer
         run: npm run build
 
-      - name: Build mac artifacts
-        run: npx electron-builder --mac --${{ matrix.arch }} --publish never
+      - name: Build mac artifacts (signed if secrets present)
+        run: |
+          export CSC_LINK='${{ secrets.CSC_LINK }}'
+          export CSC_KEY_PASSWORD='${{ secrets.CSC_KEY_PASSWORD }}'
+          export APPLE_ID='${{ secrets.APPLE_ID }}'
+          export APPLE_PASSWORD='${{ secrets.APPLE_PASSWORD }}'
+          if [ -n "$CSC_LINK" ] && [ -n "$CSC_KEY_PASSWORD" ]; then
+            echo "CSC_LINK provided — building signed mac artifact"
+            npx electron-builder --mac --${{ matrix.arch }} --publish never
+          else
+            echo "No CSC_LINK — building unsigned mac artifact"
+            npx electron-builder --mac --${{ matrix.arch }} --publish never
+          fi
 
       - name: Upload artifacts to GitHub Release
         uses: softprops/action-gh-release@v1
@@ -148,9 +160,6 @@ jobs:
     strategy:
       matrix:
         arch: [x64, arm64]
-    env:
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -160,7 +169,12 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Build renderer
         run: npm run build
