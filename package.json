@@ -61,13 +61,15 @@
         "dmg"
       ],
       "hardenedRuntime": true,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "linux": {
       "icon": "public/icon.png",
       "target": ["AppImage", "deb"],
       "category": "Development",
-      "maintainer": "Pitan <admin@pitan76.net>"
+      "maintainer": "Pitan <admin@pitan76.net>",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "asar": true,
     "files": [
