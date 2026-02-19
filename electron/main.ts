@@ -1,12 +1,48 @@
 import { ipcMain as _ipcMain } from 'electron';
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import fs from 'fs';
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import AdmZip from 'adm-zip';
-import fs from 'fs';
 import https from 'node:https';
 
+
+
+let _t: Record<string, string> = {};
+let t = (key: string) => key;
+let currentLang = 'ja_jp';
+function loadLang(lang: string) {
+  try {
+    const langPath = path.join(
+      process.env.VITE_PUBLIC || path.join(path.dirname(fileURLToPath(import.meta.url)), '../public'),
+      `lang/${lang}.json`
+    );
+    _t = JSON.parse(fs.readFileSync(langPath, 'utf8'));
+    t = (key: string) => _t[key] || key;
+    currentLang = lang;
+  } catch {
+    _t = {};
+    t = (key: string) => key;
+  }
+}
+
+try {
+  const saveDir = path.join(app.getPath('userData'), 'data');
+  const configPath = path.join(saveDir, 'config.json');
+  let lang = 'ja_jp';
+  if (fs.existsSync(configPath)) {
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(raw);
+    lang = config.lang || lang;
+  }
+  loadLang(lang);
+} catch {
+  loadLang('ja_jp');
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+
 
 // The built directory structure
 //
@@ -42,7 +78,7 @@ ipcMain.handle('get-config', async () => {
   } catch (e) {
     // ignore
   }
-  return { cameraType: 'orthographic', near: 0.1, far: 100, light: 1 };
+  return { cameraType: 'orthographic', near: 0.1, far: 100, light: 1, lang: 'ja_jp' };
 });
 
 let win: BrowserWindow | null
@@ -239,83 +275,83 @@ ipcMain.handle('extract-mod-data', async () => {
 
 const menubar: any = [
   {
-    label: 'ファイル',
+    label: t('file_menu'),
     submenu: [
-      { label: 'jarを開く...', accelerator: 'CmdOrCtrl+O', click: async () => {
+      { label: t('open_jar_menu'), accelerator: 'CmdOrCtrl+O', click: async () => {
           const result = await processJarImport();
           if (result && win) {
             win.webContents.send('mod-data-extracted', result);
           }
       }},
       { type: 'separator' },
-      { label: 'とりあえず、画像出力', accelerator: 'CmdOrCtrl+Shift+E', click: () => {
+      { label: t('export_image_now'), accelerator: 'CmdOrCtrl+Shift+E', click: () => {
         if (win) win.webContents.send('export-single-png');
       }},
-      { label: '画像出力...', click: () => {
+      { label: t('export_image_menu'), click: () => {
         createDetailExportDialog();
       }},
-      { label: '一括画像出力...', click: () => {
+      { label: t('batch_export_menu'), click: () => {
         createBatchExportDialog();
       }},
       { type: 'separator' },
-      { label: '設定', click: () => {
+      { label: t('settings'), click: () => {
         createConfigDialog();
       }},
       { type: 'separator' },
-      { label: '終了', role: 'quit' }
+      { label: t('exit'), role: 'quit' }
     ]
   },
   {
-    label: '編集',
+    label: t('edit_menu'),
     submenu: [
-      { label: '元に戻す', role: 'undo' },
-      { label: 'やり直し', role: 'redo' },
+      { label: t('undo'), role: 'undo' },
+      { label: t('redo'), role: 'redo' },
       { type: 'separator' },
-      { label: '切り取り', role: 'cut' },
-      { label: 'コピー', role: 'copy' },
-      { label: '貼り付け', role: 'paste' }
+      { label: t('cut'), role: 'cut' },
+      { label: t('copy'), role: 'copy' },
+      { label: t('paste'), role: 'paste' }
     ]
   },
   {
-    label: '表示',
+    label: t('view_menu'),
     submenu: [
-      { label: '再読み込み', role: 'reload' },
-      { label: '開発者ツール', role: 'toggleDevTools' },
+      { label: t('reload'), role: 'reload' },
+      { label: t('dev_tools'), role: 'toggleDevTools' },
       { type: 'separator' },
-      { label: 'ダークテーマ', click: () => {
+      { label: t('dark_theme'), click: () => {
           if (win) win.webContents.send('set-theme', 'dark');
       }},
-      { label: 'ライトテーマ', click: () => {
+      { label: t('light_theme'), click: () => {
           if (win) win.webContents.send('set-theme', 'light');
       }},
-      { label: 'システム設定に従う', click: () => {
+      { label: t('system_theme'), click: () => {
           if (win) win.webContents.send('set-theme', 'system');
       }},
       { type: 'separator' },
-      { label: '拡大', role: 'zoomIn' },
-      { label: '縮小', role: 'zoomOut' },
-      { label: 'リセット', role: 'resetZoom' }
+      { label: t('zoom_in'), role: 'zoomIn' },
+      { label: t('zoom_out'), role: 'zoomOut' },
+      { label: t('reset_zoom'), role: 'resetZoom' }
     ]
   },
   {
-    label: 'ウィンドウ',
+    label: t('window_menu'),
     submenu: [
-      { label: '最小化', role: 'minimize' },
-      { label: '閉じる', role: 'close' }
+      { label: t('minimize'), role: 'minimize' },
+      { label: t('close'), role: 'close' }
     ]
   },
   {
-    label: 'ヘルプ',
+    label: t('help_menu'),
     submenu: [
-      { label: 'Block Model Viewr について', click: () => {
+      { label: t('about'), click: () => {
         dialog.showMessageBox({
           type: 'info',
-          title: 'Block Model Viewer について',
-          message: 'Block Model Viewer\nバージョン: 0.0.2\n作者: Pitan',
+          title: t('about_title'),
+          message: t('about_message'),
         });
       }},
       {
-        label: 'GitHubリポジトリを開く',
+        label: t('open_github'),
         click: () => {
           shell.openExternal('https://github.com/PTOM76/mc-block-model-viewer');
         }
@@ -619,10 +655,17 @@ ipcMain.handle('save-minecraft-jar', async (_event, jarPath: string) => {
 });
 
 ipcMain.on('config-dialog-submit', (_event, config) => {
-  // データ保存フォルダにconfig.jsonとして保存
   const saveDir = path.join(app.getPath('userData'), 'data');
   if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
   fs.writeFileSync(path.join(saveDir, 'config.json'), JSON.stringify(config, null, 2), 'utf8');
+
+  // 言語変更の即時反映
+  if (config.lang && config.lang !== currentLang) {
+    loadLang(config.lang);
+
+    const menu = Menu.buildFromTemplate(menubar);
+    Menu.setApplicationMenu(menu);
+  }
   if (configDialogWin && !configDialogWin.isDestroyed()) configDialogWin.close();
   if (win && !win.isDestroyed()) win.webContents.send('config-updated', config);
 });

@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Center, OrthographicCamera } from '@react-three/drei'
 import { useState, Suspense, useEffect, useRef } from 'react';
 import { loadConfig } from './config';
+import { t, setLang } from './i18n';
 import * as THREE from 'three';
 
 // @ts-ignore
@@ -322,7 +323,7 @@ function App() {
   const [themeMode, setThemeMode] = useState<'system' | 'dark' | 'light'>('system');
   const [isBatchExporting, setIsBatchExporting] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
-  // 設定管理
+
   const defaultConfig = { cameraType: 'orthographic', near: 0.1, far: 100, light: 1 };
   const [config, setConfig] = useState<{ cameraType: string; near: number; far: number; light: number }>(defaultConfig);
 
@@ -330,6 +331,7 @@ function App() {
     (async () => {
       const cfg = await loadConfig();
       setConfig(cfg || defaultConfig);
+      if (cfg && cfg.lang) setLang(cfg.lang);
     })();
   }, []);
 
@@ -337,6 +339,7 @@ function App() {
     if (!(window as any).ipcRenderer) return;
     const handler = (_event: any, newConfig: any) => {
       setConfig(newConfig);
+      if (newConfig && newConfig.lang) setLang(newConfig.lang);
     };
     const unsub = (window as any).ipcRenderer.on('config-updated', handler);
     return () => { if (unsub) unsub(); };
@@ -430,7 +433,7 @@ useEffect(() => {
       }
       console.log("Downloaded Minecraft data, selected model:", selectedModel);
     } else {
-      alert('Minecraft.jarのダウンロードに失敗しました');
+      alert(t('download_minecraft_jar') + t('save_cancel'));
     }
   };
 
@@ -441,7 +444,7 @@ useEffect(() => {
 
   const handleExportPNG = () => {
     if (!selectedModel) {
-      alert('モデルを選択してください');
+      alert(t('select_model_alert'));
       return;
     }
     
@@ -449,7 +452,7 @@ useEffect(() => {
       console.log('PNG出力開始:', selectedModel);
       (window as any).__exportPNG();
     } else {
-      alert('Canvas未準備');
+      alert(t('canvas_not_ready'));
     }
   };
 
@@ -457,9 +460,9 @@ useEffect(() => {
     // 単一画像出力、ファイルダイアログで保存
     const success = await window.ipcRenderer.invoke('save-png', dataUrl, selectedModel);
     if (success) {
-      alert('PNG保存完了！');
+      alert(t('save_png_complete'));
     } else {
-      alert('保存キャンセル');
+      alert(t('save_cancel'));
     }
   };
 
@@ -473,7 +476,7 @@ useEffect(() => {
   useEffect(() => {
     const handleExportSinglePNG = () => {
       if (!selectedModel) {
-        alert('モデルを選択してください');
+        alert(t('select_model_alert'));
         return;
       }
       handleExportPNG();
@@ -489,13 +492,13 @@ useEffect(() => {
   useEffect(() => {
     const handleDetailDialogSubmit = async (_event: any, config: { format: string; width: number; height: number }) => {
       if (!selectedModel) {
-        alert('モデルを選択してください');
+        alert(t('select_model_alert'));
         return;
       }
       if ((window as any).__exportPNG) {
         (window as any).__exportPNG(config.width, config.height, config.format);
       } else {
-        alert('Canvas未準備');
+        alert(t('canvas_not_ready'));
       }
     };
     const unsubscribe = (window as any).ipcRenderer?.on('detail-dialog-submit', handleDetailDialogSubmit);
@@ -508,7 +511,7 @@ useEffect(() => {
   useEffect(() => {
     const handleBatchExportConfig = async (_event: any, config: { format: string; template: string; width: number; height: number }) => {
       if (!data || !data.models || Object.keys(data.models).length === 0) {
-        alert('モデルが読み込まれていません');
+        alert(t('models_not_loaded'));
         return;
       }
       const outputDir = await (window as any).ipcRenderer?.invoke('select-batch-output-folder');
@@ -541,7 +544,7 @@ useEffect(() => {
       setIsBatchExporting(false);
       setCanvasKey(prev => prev + 1);
       setTimeout(() => {
-        alert(`${modelList.length}個のモデルを出力完了しました`);
+        alert(t('output_complete', { COUNT: modelList.length }));
       }, 300);
     };
     const unsubscribe = (window as any).ipcRenderer?.on('batch-dialog-submit', handleBatchExportConfig);
@@ -555,11 +558,11 @@ useEffect(() => {
 
       {/* 左側のサイドリスト */}
       <div style={{ minWidth: '150px', width: '200px', borderRight: `1px solid ${"var(--border-color)"}`, padding: '10px', color: "var(--text-color)" }}>
-        <button onClick={handlePickFile} className="sidebar-button">jarを開く</button>
-        <button onClick={handleDownloadMinecraft} className="sidebar-button">minecraft.jarをDL</button>
+        <button onClick={handlePickFile} className="sidebar-button">{t('open_jar')}</button>
+        <button onClick={handleDownloadMinecraft} className="sidebar-button">{t('download_minecraft_jar')}</button>
         {data && selectedModel && (<>
-        <button onClick={handleClearData} className="sidebar-button">すべて消去</button>
-        <button onClick={handleExportPNG} className="sidebar-button last">画像として保存</button>
+        <button onClick={handleClearData} className="sidebar-button">{t('clear_all')}</button>
+        <button onClick={handleExportPNG} className="sidebar-button last">{t('save_as_image')}</button>
         </>)}
 
         {/*モデルリスト */}
@@ -598,16 +601,16 @@ useEffect(() => {
             zIndex: 100,
             fontSize: '18px'
           }}>
-            一括出力中...
+            {t('batch_exporting')}
           </div>
         )}
         
         {/* カメラ操作ボタン */}
         <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, display: 'flex', gap: '5px' }}>
           <button 
-            onClick={handleResetCamera} title="カメラ位置をリセット"
+            onClick={handleResetCamera} title={t('reset_camera_title')}
             style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: '4px' }}>
-            リセット
+            {t('reset')}
           </button>
         </div>
         {config && (

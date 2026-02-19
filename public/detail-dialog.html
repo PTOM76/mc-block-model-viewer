@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>詳細画像出力</title>
+  <title data-i18n="detail_export">詳細画像出力</title>
   <link rel="stylesheet" href="dialog.css">
 </head>
 <body>
   <div class="form-group">
-    <label>ファイル形式</label>
+    <label data-i18n="file_format">ファイル形式</label>
     <select id="formatSelect">
       <option value="png">PNG</option>
       <option value="jpg">JPG</option>
@@ -16,23 +16,40 @@
     </select>
   </div>
   <div class="form-group">
-    <label>画像サイズ</label>
+    <label data-i18n="image_size">画像サイズ</label>
     <select id="sizeSelect">
       <option value="300">300x300</option>
       <option value="32">32x32</option>
-      <option value="custom">指定する...</option>
+      <option value="custom" data-i18n="custom">指定する...</option>
     </select>
   </div>
   <div class="form-group" style="display:none;" id="customSizeGroup">
     <input type="text" id="customSizeInput" value="300x300" placeholder="300x300">
   </div>
   <div class="buttons">
-    <button class="btn-cancel" onclick="cancel()">キャンセル</button>
-    <button class="btn-primary" onclick="submit()">出力</button>
+    <button class="btn-cancel" onclick="cancel()" data-i18n="cancel">キャンセル</button>
+    <button class="btn-primary" onclick="submit()" data-i18n="output">出力</button>
   </div>
   <script>
+    // 言語設定をconfig.jsonから取得し、なければja_jp
+    (async () => {
+      let lang = 'ja_jp';
+      if (window.ipcRenderer) {
+        try {
+          const config = await window.ipcRenderer.invoke('get-config');
+          if (config && config.lang) lang = config.lang;
+        } catch {}
+      }
+      fetch(`lang/${lang}.json`).then(r=>r.json()).then(t=>{
+        document.querySelectorAll('[data-i18n]').forEach(el=>{
+          const key=el.getAttribute('data-i18n');
+          if(t[key]) el.textContent=t[key];
+        });
+      });
+    })();
     const formatSelect = document.getElementById('formatSelect');
     const sizeSelect = document.getElementById('sizeSelect');
+    
     const customSizeGroup = document.getElementById('customSizeGroup');
     sizeSelect.addEventListener('change', (e) => {
       if (sizeSelect.value === 'custom') {
@@ -51,8 +68,14 @@
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') 
+      if (e.key === 'Escape') {
+        e.preventDefault();
         cancel();
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submit();
+      }
     });
 
     function cancel() {
