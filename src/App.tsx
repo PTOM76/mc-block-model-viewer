@@ -409,7 +409,7 @@ useEffect(() => {
     if (result) {
       const merged = mergeData(data, result);
       setData(merged);
-      // 最初のモデルをデフォルトで選択（既存のものがなければ新しいもの）
+      // 最初のモデルをデフォルトで選択
       if (!selectedModel || !merged.models[selectedModel]) {
         const firstModel = Object.keys(merged.models)[0];
         setSelectedModel(firstModel);
@@ -420,6 +420,7 @@ useEffect(() => {
 
   const handleDownloadMinecraft = async () => {
     const result = await window.ipcRenderer.invoke('download-minecraft-jar');
+
     if (result) {
       const merged = mergeData(data, result);
       setData(merged);
@@ -506,7 +507,7 @@ useEffect(() => {
   // バッチ出力ダイアログからの受信
   useEffect(() => {
     const handleBatchExportConfig = async (_event: any, config: { format: string; template: string; width: number; height: number }) => {
-      if (!data || Object.keys(data.models).length === 0) {
+      if (!data || !data.models || Object.keys(data.models).length === 0) {
         alert('モデルが読み込まれていません');
         return;
       }
@@ -563,7 +564,7 @@ useEffect(() => {
 
         {/*モデルリスト */}
         <div style={{ overflowY: 'auto', height: 'calc(100vh - 149px)' }}>
-          {data && Object.keys(data.models).map(name => (
+          {data && data.models && Object.keys(data.models).map(name => (
             <div 
               key={name} 
               onClick={() => setSelectedModel(name)}

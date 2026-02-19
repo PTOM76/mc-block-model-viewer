@@ -520,25 +520,33 @@ ipcMain.handle('download-minecraft-jar', async () => {
       }).on('error', reject);
     });
 
-    const clientJarUrl = versionDetail.downloads.client.url;
+    const minecraftJarUrl = versionDetail.downloads.client.url;
 
-    const jarPath = path.join(app.getPath('temp'), `minecraft-${latestVersion}.jar`);
-    const file = fs.createWriteStream(jarPath);
+    // 保存先ディレクトリ
+    const saveDir = path.join(app.getPath('userData'), 'data');
+    if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
+    const jarPath = path.join(saveDir, `minecraft-${latestVersion}.jar`);
 
-    await new Promise<void>((resolve, reject) => {
-      https.get(clientJarUrl, (res) => {
-        res.pipe(file);
-        file.on('finish', () => {
-          file.close();
-          resolve();
+    // minecraft.jarがなければダウンロードしてくる
+    if (!fs.existsSync(jarPath)) {
+      const file = fs.createWriteStream(jarPath);
+      await new Promise<void>((resolve, reject) => {
+        https.get(minecraftJarUrl, (res) => {
+          res.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            resolve();
+          });
+        }).on('error', (err) => {
+          fs.unlink(jarPath, () => {});
+          reject(err);
         });
-      }).on('error', (err) => {
-        fs.unlink(jarPath, () => {});
-        reject(err);
       });
-    });
 
-    console.log(`Downloaded Minecraft ${latestVersion} JAR to ${jarPath}`);
+      console.log(`Downloaded Minecraft ${latestVersion} JAR to ${jarPath}`);
+    } else {
+      console.log(`Using existing Minecraft ${latestVersion} JAR from ${jarPath}`);
+    }
 
     const zip = new AdmZip(jarPath);
     const zipEntries = zip.getEntries();
@@ -588,7 +596,7 @@ ipcMain.handle('download-minecraft-jar', async () => {
     };
 
     Object.assign(textureFiles, defaultTextures);
-    fs.unlinkSync(jarPath);
+    // fs.unlinkSync(jarPath);
 
     return { models: finalModels, textureFiles };
   } catch (error) {
