@@ -1,7 +1,7 @@
 /// <reference path="./vite-env.d.ts" />
-import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls, Center } from '@react-three/drei'
-import React, { useState, Suspense, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls, Center, OrthographicCamera } from '@react-three/drei'
+import React, { useState, Suspense, useEffect, useRef, useLayoutEffect } from 'react';
 import * as THREE from 'three';
 
 // @ts-ignore
@@ -10,7 +10,7 @@ import { MCModel } from './MCModel';
 function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void; format: 'png' | 'jpg' | 'gif' }) {
   const { gl, scene, camera } = useThree();
   
-  React.useEffect(() => {
+  useEffect(() => {
     (window as any).__exportPNG = () => {
       const tempRenderer = new THREE.WebGLRenderer({ 
         antialias: false, 
@@ -20,14 +20,14 @@ function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void
       tempRenderer.setSize(300, 300);
       tempRenderer.setClearColor(0x000000, 0); // 透明背景
       
-      // 平行投影カメラ
-      const size = 0.85;
+      // 平行投影
+      const size = 0.8;
       const tempCamera = new THREE.OrthographicCamera(
         -size, size,  // left, right
         size, -size,  // top, bottom
         0.1, 100      // near, far
       );
-      tempCamera.position.set(-1, 1, -1);
+      tempCamera.position.set(-1, 0.825, -1);
       tempCamera.lookAt(0, 0, 0);
       tempCamera.updateProjectionMatrix();
       tempRenderer.render(scene, tempCamera);
@@ -86,20 +86,18 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: '
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.0;
   
-  const size = 0.85;
+  // 平行投影
+  const size = 0.8;
   const camera = new THREE.OrthographicCamera(
     -size, size,
     size, -size,
     0.1, 100
   );
-  camera.position.set(-1, 1, -1);
+  camera.position.set(-1, 0.825, -1);
   camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
-  
-  // レンダリング
   renderer.render(scene, camera);
   
-  // フォーマットに応じて画像を生成
   let mimeType: string;
   let quality = 0.95;
   
@@ -108,7 +106,7 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: '
       mimeType = 'image/jpeg';
       break;
     case 'gif':
-      mimeType = 'image/png'; // GIFはPNGとして出力（ブラウザではGIFエンコード不可）
+      mimeType = 'image/png';
       break;
     default:
       mimeType = 'image/png';
@@ -116,8 +114,7 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: '
   
   const dataUrl = renderer.domElement.toDataURL(mimeType, quality);
   
-  // クリーンアップ（WebGLコンテキストを確実に解放）
-  // マテリアルとテクスチャを先にクリーンアップ
+  // マテリアルとテクスチャをクリーンアップ
   scene.traverse((obj) => {
     if ((obj as any).geometry) (obj as any).geometry.dispose();
     if ((obj as any).material) {
@@ -133,7 +130,7 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: '
     }
   });
   
-  // レンダラーをクリーンアップ
+  // クリーンアップ
   renderer.dispose();
   renderer.forceContextLoss();
   
@@ -222,7 +219,7 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
             texture.magFilter = THREE.NearestFilter;
             texture.minFilter = THREE.NearestFilter;
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.colorSpace = THREE.SRGBColorSpace; // 彩度を正しく表示
+            texture.colorSpace = THREE.SRGBColorSpace;
             
             const uv = faceData.uv || [0, 0, 16, 16];
             texture.repeat.set((uv[2] - uv[0]) / 16, (uv[3] - uv[1]) / 16);
@@ -268,9 +265,9 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
 function CameraResetter() {
   const { camera, controls } = useThree();
   
-  React.useEffect(() => {
+  useEffect(() => {
     (window as any).__resetCamera = () => {
-      camera.position.set(-1.5, 1.5, -1.5);
+      camera.position.set(-1.0, 1.0, -1.0);
       camera.lookAt(0, 0, 0);
       camera.zoom = 1;
       camera.updateProjectionMatrix();
@@ -282,6 +279,39 @@ function CameraResetter() {
   }, [camera, controls]);
   
   return null;
+}
+
+function ResponsiveOrthoCamera() {
+  const cameraRef = useRef<THREE.OrthographicCamera>(null);
+
+  useFrame(({ camera, gl }) => {
+    const cam = cameraRef.current || camera as THREE.OrthographicCamera;
+
+    const width = gl.domElement.clientWidth;
+    const height = gl.domElement.clientHeight;
+    if (width === 0 || height === 0) return;
+
+    const aspect = width / height;
+
+    const frustumHeight = 2;
+    const frustumWidth = frustumHeight * aspect;
+
+    cam.left = -frustumWidth / 2;
+    cam.right = frustumWidth / 2;
+    cam.top = frustumHeight / 2;
+    cam.bottom = -frustumHeight / 2;
+    cam.updateProjectionMatrix();
+  });
+
+  return (
+    <OrthographicCamera
+      makeDefault
+      position={[-1, 0.825, -1]} // minecraft.wiki の作業台のサイズがこれぐらいだった
+      near={0.1}
+      far={100}
+      zoom={0.75}
+    />
+  );
 }
 
 function App() {
@@ -379,7 +409,7 @@ useEffect(() => {
       }
       console.log("Downloaded Minecraft data, selected model:", selectedModel);
     } else {
-      alert('Minecraft JARのダウンロードに失敗しました');
+      alert('Minecraft.jarのダウンロードに失敗しました');
     }
   };
 
@@ -403,7 +433,7 @@ useEffect(() => {
   };
 
   const handlePNGData = async (dataUrl: string) => {
-    // 通常出力：ファイルダイアログで保存
+    // 単一画像出力、ファイルダイアログで保存
     const success = await window.ipcRenderer.invoke('save-png', dataUrl, selectedModel);
     if (success) {
       alert('PNG保存完了！');
@@ -562,7 +592,7 @@ useEffect(() => {
         </div>
         <Canvas 
           key={canvasKey}
-          camera={{ position: [-1.5, 1.5, -1.5] }} 
+          // camera={{ position: [-1.5, 1.5, -1.5] }} 
           gl={{ 
             antialias: false,
             toneMapping: THREE.NoToneMapping,
@@ -571,6 +601,7 @@ useEffect(() => {
           style={{ width: '100%', height: '100%' }}
           resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
         >
+          <ResponsiveOrthoCamera />
           <ambientLight intensity={1.0} />
           <directionalLight position={[5, 10, 5]} intensity={1.5} />
           <directionalLight position={[-5, -5, -5]} intensity={0.5} />

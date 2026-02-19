@@ -109,7 +109,7 @@ function MCElement({ element, textureMap, textures }) {
       });
       
       if (textureUrl) {
-        const texture = loader.load(textureUrl, (tex) => {
+        loader.load(textureUrl, (tex) => {
           tex.magFilter = THREE.NearestFilter;
           tex.minFilter = THREE.NearestFilter;
           tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
