@@ -1,7 +1,7 @@
 {
   "name": "mc-block-model-viewer",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -40,7 +40,7 @@
   "main": "dist-electron/main.js",
   "build": {
     "appId": "net.pitan76.mcblockmodelviewer",
-    "productName": "BlockModelViewer",
+    "productName": "Block Model Viewer",
     "directories": {
       "output": "release"
     },

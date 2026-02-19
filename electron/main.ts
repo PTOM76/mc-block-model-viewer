@@ -311,7 +311,7 @@ const menubar: any = [
         dialog.showMessageBox({
           type: 'info',
           title: 'Block Model Viewer について',
-          message: 'Block Model Viewer\nバージョン: 1.0.1\n作者: Pitan',
+          message: 'Block Model Viewer\nバージョン: 0.0.2\n作者: Pitan',
         });
       }},
       {
