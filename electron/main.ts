@@ -284,17 +284,17 @@ const menubar: any = [
           }
       }},
       { type: 'separator' },
-      { label: t('export_image_now'), accelerator: 'CmdOrCtrl+Shift+E', click: () => {
+      { label: t('export_image_now'), accelerator: 'CmdOrCtrl+N', click: () => {
         if (win) win.webContents.send('export-single-png');
       }},
-      { label: t('export_image_menu'), click: () => {
+      { label: t('export_image_menu'), accelerator: 'CmdOrCtrl+E', click: () => {
         createDetailExportDialog();
       }},
-      { label: t('batch_export_menu'), click: () => {
+      { label: t('batch_export_menu'), accelerator: 'CmdOrCtrl+Shift+E', click: () => {
         createBatchExportDialog();
       }},
       { type: 'separator' },
-      { label: t('settings'), click: () => {
+      { label: t('settings'), accelerator: 'CmdOrCtrl+,', click: () => {
         createConfigDialog();
       }},
       { type: 'separator' },
