@@ -1,7 +1,7 @@
 /// <reference path="./vite-env.d.ts" />
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Center, OrthographicCamera } from '@react-three/drei'
-import React, { useState, Suspense, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, Suspense, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // @ts-ignore
@@ -11,30 +11,30 @@ function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void
   const { gl, scene, camera } = useThree();
   
   useEffect(() => {
-    (window as any).__exportPNG = () => {
-      const tempRenderer = new THREE.WebGLRenderer({ 
+    (window as any).__exportPNG = (width = 300, height = 300, _format = format) => {
+      const _renderer = new THREE.WebGLRenderer({ 
         antialias: false, 
         alpha: true,
         preserveDrawingBuffer: true 
       });
-      tempRenderer.setSize(300, 300);
-      tempRenderer.setClearColor(0x000000, 0); // 透明背景
+      _renderer.setSize(width, height);
+      _renderer.setClearColor(0x000000, 0); // 透明背景
       
       // 平行投影
       const size = 0.8;
-      const tempCamera = new THREE.OrthographicCamera(
+      const _camera = new THREE.OrthographicCamera(
         -size, size,  // left, right
         size, -size,  // top, bottom
         0.1, 100      // near, far
       );
-      tempCamera.position.set(-1, 0.825, -1);
-      tempCamera.lookAt(0, 0, 0);
-      tempCamera.updateProjectionMatrix();
-      tempRenderer.render(scene, tempCamera);
+      _camera.position.set(-1, 0.825, -1);
+      _camera.lookAt(0, 0, 0);
+      _camera.updateProjectionMatrix();
+      _renderer.render(scene, _camera);
       let mimeType: string;
       let quality = 0.95;
       
-      switch (format) {
+      switch (_format) {
         case 'jpg':
           mimeType = 'image/jpeg';
           break;
@@ -45,10 +45,10 @@ function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void
           mimeType = 'image/png';
       }
       
-      const dataUrl = tempRenderer.domElement.toDataURL(mimeType, quality);
+      const dataUrl = _renderer.domElement.toDataURL(mimeType, quality);
       
       // クリーンアップ
-      tempRenderer.dispose();
+      _renderer.dispose();
       
       onExport(dataUrl);
     };
@@ -57,7 +57,7 @@ function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void
   return null;
 }
 
-async function renderModelOffscreen(modelData: any, textureFiles: any, format: 'png' | 'jpg' | 'gif'): Promise<string> {
+async function renderModelOffscreen(modelData: any, textureFiles: any, format: string, width = 300, height = 300): Promise<string> {
   const scene = new THREE.Scene();
   
   const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
@@ -80,7 +80,7 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: '
     alpha: true,
     preserveDrawingBuffer: true 
   });
-  renderer.setSize(300, 300);
+  renderer.setSize(width, height);
   renderer.setClearColor(0x000000, 0);
 
   renderer.toneMapping = THREE.NoToneMapping;
@@ -106,7 +106,7 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: '
       mimeType = 'image/jpeg';
       break;
     case 'gif':
-      mimeType = 'image/png';
+      mimeType = 'image/gif';
       break;
     default:
       mimeType = 'image/png';
@@ -464,68 +464,66 @@ useEffect(() => {
     };
   }, [selectedModel]);
 
-  // 別ウィンドウからの一括出力設定を受け取る
+  // 詳細画像出力ダイアログからの受信
   useEffect(() => {
-    const handleBatchExportConfig = async (_event: any, config: { format: string; template: string }) => {
+    const handleDetailDialogSubmit = async (_event: any, config: { format: string; width: number; height: number }) => {
+      if (!selectedModel) {
+        alert('モデルを選択してください');
+        return;
+      }
+      if ((window as any).__exportPNG) {
+        (window as any).__exportPNG(config.width, config.height, config.format);
+      } else {
+        alert('Canvas未準備');
+      }
+    };
+    const unsubscribe = (window as any).ipcRenderer?.on('detail-dialog-submit', handleDetailDialogSubmit);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [selectedModel]);
+
+  // バッチ出力ダイアログからの受信
+  useEffect(() => {
+    const handleBatchExportConfig = async (_event: any, config: { format: string; template: string; width: number; height: number }) => {
       if (!data || Object.keys(data.models).length === 0) {
         alert('モデルが読み込まれていません');
         return;
       }
-      
-      // フォルダ選択ダイアログを表示
       const outputDir = await (window as any).ipcRenderer?.invoke('select-batch-output-folder');
       if (!outputDir) return;
-
-      console.log('一括出力開始:', { template: config.template, format: config.format, outputDir });
-
-      // 一括出力開始（オフスクリーンでレンダリング）
       const modelList = Object.keys(data.models);
       setIsBatchExporting(true);
-      
-      // 各モデルをオフスクリーンでレンダリング
       for (let i = 0; i < modelList.length; i++) {
         const modelName = modelList[i];
         const modelData = data.models[modelName];
-        
-        console.log(`一括出力 ${i + 1}/${modelList.length}: ${modelName}`);
-        
         try {
-          // オフスクリーンで画像生成
-          const dataUrl = await renderModelOffscreen(modelData, data.textureFiles, config.format as 'png' | 'jpg' | 'gif');
-          
+          const dataUrl = await renderModelOffscreen(modelData, data.textureFiles, config.format, config.width, config.height);
           const [modid, ...rest] = modelName.split(':');
           const modelPath = rest.join(':');
+          
+          let cleanModelPath = modelPath.replace(/^(block_|item_)/, '');
           let fileName = config.template
             .replace('$1', modid || 'unknown')
-            .replace('$2', modelPath || 'unknown')
+            .replace('$2', cleanModelPath || 'unknown')
             .replace(/[/\\:*?"<>|]/g, '_');
-          
           const ext = `.${config.format}`;
           if (!fileName.endsWith(ext)) {
             fileName = fileName.replace(/\.[^.]*$/, '') + ext;
           }
-          
           await window.ipcRenderer.invoke('save-png-batch', { dataUrl, fileName, format: config.format });
-          console.log(`  → ${fileName} 保存完了`);
-          
-          // ガベージコレクションのために少し待機（10モデルごとに）
           if ((i + 1) % 10 === 0) await new Promise(resolve => setTimeout(resolve, 50));
         } catch (error) {
           console.error(`モデル ${modelName} の出力に失敗:`, error);
         }
       }
-      
       setIsBatchExporting(false);
-      console.log('一括出力完了');
-      
       setCanvasKey(prev => prev + 1);
-      
       setTimeout(() => {
         alert(`${modelList.length}個のモデルを出力完了しました`);
       }, 300);
     };
-
-    const unsubscribe = (window as any).ipcRenderer?.on('batch-export-config', handleBatchExportConfig);
+    const unsubscribe = (window as any).ipcRenderer?.on('batch-dialog-submit', handleBatchExportConfig);
     return () => {
       if (unsubscribe) unsubscribe();
     };

@@ -27,6 +27,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 
 let win: BrowserWindow | null
 let batchOutputDir: string | null = null
+let detailDialogWin: BrowserWindow | null = null
 let batchDialogWin: BrowserWindow | null = null
 
 function createWindow() {
@@ -37,6 +38,7 @@ function createWindow() {
     minHeight: 300,
     vibrancy: 'under-window',
     visualEffectState: 'active',
+    skipTaskbar: true,
 
     icon: path.join(process.env.VITE_PUBLIC, 'icon.ico'),
     webPreferences: {
@@ -56,6 +58,42 @@ function createWindow() {
   }
 }
 
+function createDetailExportDialog() {
+  if (detailDialogWin && !detailDialogWin.isDestroyed()) {
+    detailDialogWin.focus();
+    return;
+  }
+
+  detailDialogWin = new BrowserWindow({
+    width: 300,
+    height: 240,
+    parent: win || undefined,
+    modal: false,
+    show: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+  detailDialogWin.setMenu(null);
+  if (VITE_DEV_SERVER_URL) {
+    detailDialogWin.loadURL(`${VITE_DEV_SERVER_URL}detail-dialog.html`);
+  } else {
+    detailDialogWin.loadFile(path.join(app.getAppPath(), 'dist/detail-dialog.html'));
+  }
+  detailDialogWin.once('ready-to-show', () => {
+    detailDialogWin?.show();
+  });
+  detailDialogWin.on('closed', () => {
+    detailDialogWin = null;
+  });
+}
+
 function createBatchExportDialog() {
   if (batchDialogWin && !batchDialogWin.isDestroyed()) {
     batchDialogWin.focus();
@@ -63,13 +101,13 @@ function createBatchExportDialog() {
   }
 
   batchDialogWin = new BrowserWindow({
-    width: 400,
+    width: 350,
     height: 300,
     parent: win || undefined,
     modal: false,
     show: false,
-    resizable: true,
-    minimizable: true,
+    resizable: false,
+    minimizable: false,
     maximizable: false,
     skipTaskbar: true,
     webPreferences: {
@@ -157,12 +195,15 @@ const menubar: any = [
           }
       }},
       { type: 'separator' },
-      { label: '画像出力', accelerator: 'CmdOrCtrl+Shift+E', click: () => {
+        { label: '画像出力', accelerator: 'CmdOrCtrl+Shift+E', click: () => {
           if (win) win.webContents.send('export-single-png');
-      }},
-      { label: '一括画像出力...', click: () => {
+        }},
+        { label: '詳細画像出力...', click: () => {
+          createDetailExportDialog();
+        }},
+        { label: '一括画像出力...', click: () => {
           createBatchExportDialog();
-      }},
+        }},
       { type: 'separator' },
       { label: '終了', role: 'quit' }
     ]
@@ -317,12 +358,23 @@ ipcMain.handle('save-png', async (_event, dataUrl: string, modelName: string) =>
   }
 });
 
-ipcMain.on('batch-dialog-submit', (_event, data: { format: string; template: string }) => {
+ipcMain.on('batch-dialog-submit', (_event, data: { format: string; template: string; width?: number; height?: number }) => {
   if (win && !win.isDestroyed())
-    win.webContents.send('batch-export-config', data);
-  
+    win.webContents.send('batch-dialog-submit', data);
   if (batchDialogWin && !batchDialogWin.isDestroyed())
     batchDialogWin.close();
+});
+
+ipcMain.on('detail-dialog-submit', (_event, data: { format: string; width?: number; height?: number }) => {
+  if (win && !win.isDestroyed())
+    win.webContents.send('detail-dialog-submit', data);
+  if (detailDialogWin && !detailDialogWin.isDestroyed())
+    detailDialogWin.close();
+});
+
+ipcMain.on('detail-dialog-cancel', () => {
+  if (detailDialogWin && !detailDialogWin.isDestroyed())
+    detailDialogWin.close();
 });
 
 ipcMain.on('batch-dialog-cancel', () => {
