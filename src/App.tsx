@@ -568,9 +568,10 @@ useEffect(() => {
             <div 
               key={name} 
               onClick={() => setSelectedModel(name)}
-              style={{ 
-                padding: '1px', 
-                cursor: 'pointer', 
+              style={{
+                padding: '1px',
+                fontSize: '14px',
+                cursor: 'pointer',
                 background: selectedModel === name ? "var(--selected-bg)" : 'transparent',
                 color: "var(--text-color)"
               }}
