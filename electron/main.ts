@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { ipcMain as _ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import AdmZip from 'adm-zip';
@@ -25,10 +26,30 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
+ipcMain.on('get-user-data-path', (event) => {
+  event.returnValue = app.getPath('userData');
+});
+
+// config.jsonを返すIPCハンドラ
+ipcMain.handle('get-config', async () => {
+  const saveDir = path.join(app.getPath('userData'), 'data');
+  const configPath = path.join(saveDir, 'config.json');
+  try {
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    // ignore
+  }
+  return { cameraType: 'orthographic', near: 0.1, far: 100, light: 1 };
+});
+
 let win: BrowserWindow | null
 let batchOutputDir: string | null = null
 let detailDialogWin: BrowserWindow | null = null
 let batchDialogWin: BrowserWindow | null = null
+let configDialogWin: BrowserWindow | null = null
 
 function createWindow() {
   win = new BrowserWindow({
@@ -38,8 +59,6 @@ function createWindow() {
     minHeight: 300,
     vibrancy: 'under-window',
     visualEffectState: 'active',
-    skipTaskbar: true,
-
     icon: path.join(process.env.VITE_PUBLIC, 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -70,7 +89,7 @@ function createDetailExportDialog() {
     parent: win || undefined,
     modal: false,
     show: false,
-    resizable: false,
+    resizable: true,
     minimizable: false,
     maximizable: false,
     skipTaskbar: true,
@@ -106,7 +125,7 @@ function createBatchExportDialog() {
     parent: win || undefined,
     modal: false,
     show: false,
-    resizable: false,
+    resizable: true,
     minimizable: false,
     maximizable: false,
     skipTaskbar: true,
@@ -131,6 +150,40 @@ function createBatchExportDialog() {
 
   batchDialogWin.on('closed', () => {
     batchDialogWin = null;
+  });
+}
+
+function createConfigDialog() {
+  if (configDialogWin && !configDialogWin.isDestroyed()) {
+    configDialogWin.focus();
+    return;
+  }
+  configDialogWin = new BrowserWindow({
+    width: 300,
+    height: 600,
+    parent: win || undefined,
+    modal: false,
+    show: false,
+    resizable: true,
+    minimizable: true,
+    maximizable: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+  configDialogWin.setMenu(null);
+  if (VITE_DEV_SERVER_URL) {
+    configDialogWin.loadURL(`${VITE_DEV_SERVER_URL}config-dialog.html`);
+  } else {
+    configDialogWin.loadFile(path.join(app.getAppPath(), 'dist/config-dialog.html'));
+  }
+  configDialogWin.once('ready-to-show', () => {
+    configDialogWin?.show();
+  });
+  configDialogWin.on('closed', () => {
+    configDialogWin = null;
   });
 }
 
@@ -195,15 +248,19 @@ const menubar: any = [
           }
       }},
       { type: 'separator' },
-        { label: '画像出力', accelerator: 'CmdOrCtrl+Shift+E', click: () => {
-          if (win) win.webContents.send('export-single-png');
-        }},
-        { label: '詳細画像出力...', click: () => {
-          createDetailExportDialog();
-        }},
-        { label: '一括画像出力...', click: () => {
-          createBatchExportDialog();
-        }},
+      { label: 'とりあえず、画像出力', accelerator: 'CmdOrCtrl+Shift+E', click: () => {
+        if (win) win.webContents.send('export-single-png');
+      }},
+      { label: '画像出力...', click: () => {
+        createDetailExportDialog();
+      }},
+      { label: '一括画像出力...', click: () => {
+        createBatchExportDialog();
+      }},
+      { type: 'separator' },
+      { label: '設定', click: () => {
+        createConfigDialog();
+      }},
       { type: 'separator' },
       { label: '終了', role: 'quit' }
     ]
@@ -250,7 +307,19 @@ const menubar: any = [
   {
     label: 'ヘルプ',
     submenu: [
-      { label: 'Block Model Viewr について', role: 'about' }
+      { label: 'Block Model Viewr について', click: () => {
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'Block Model Viewer について',
+          message: 'Block Model Viewer\nバージョン: 1.0.1\n作者: Pitan',
+        });
+      }},
+      {
+        label: 'GitHubリポジトリを開く',
+        click: () => {
+          shell.openExternal('https://github.com/PTOM76/mc-block-model-viewer');
+        }
+      }
     ]
   }
 ];
@@ -428,7 +497,6 @@ ipcMain.handle('save-png-batch', async (_event, { dataUrl, fileName, format }: {
   }
 });
 
-
 ipcMain.handle('download-minecraft-jar', async () => {
   try {
     const versionManifestUrl = 'https://piston-meta.mojang.com/mc/game/version_manifest.json';
@@ -527,4 +595,30 @@ ipcMain.handle('download-minecraft-jar', async () => {
     console.error('Minecraft JAR download error:', error);
     return null;
   }
+});
+
+ipcMain.handle('save-minecraft-jar', async (_event, jarPath: string) => {
+  // データ保存フォルダにminecraft.jarをコピー
+  const saveDir = path.join(app.getPath('userData'), 'data');
+  if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
+  const dest = path.join(saveDir, 'minecraft.jar');
+  try {
+    fs.copyFileSync(jarPath, dest);
+    return { success: true, dest };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.on('config-dialog-submit', (_event, config) => {
+  // データ保存フォルダにconfig.jsonとして保存
+  const saveDir = path.join(app.getPath('userData'), 'data');
+  if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
+  fs.writeFileSync(path.join(saveDir, 'config.json'), JSON.stringify(config, null, 2), 'utf8');
+  if (configDialogWin && !configDialogWin.isDestroyed()) configDialogWin.close();
+  if (win && !win.isDestroyed()) win.webContents.send('config-updated', config);
+});
+
+ipcMain.on('config-dialog-cancel', () => {
+  if (configDialogWin && !configDialogWin.isDestroyed()) configDialogWin.close();
 });

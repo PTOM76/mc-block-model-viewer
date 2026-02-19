@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>設定</title>
+  <link rel="stylesheet" href="dialog.css">
+</head>
+<body>
+  <div class="form-group">
+    <label>カメラ方式</label>
+    <select id="cameraType">
+      <option value="orthographic">平行投影</option>
+      <option value="perspective">透視投影</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>near</label>
+    <input type="number" id="nearInput" min="0.01" max="100" step="0.01" value="0.1">
+  </div>
+  <div class="form-group">
+    <label>far</label>
+    <input type="number" id="farInput" min="1" max="1000" step="1" value="100">
+  </div>
+  <div class="form-group">
+    <label>明るさ</label>
+    <input type="number" id="lightInput" min="0" max="5" step="0.01" value="1">
+  </div>
+  <div class="buttons">
+    <button onclick="resetDefault()">デフォルト</button>
+    <button onclick="cancel()">キャンセル</button>
+    <button onclick="submit()">保存</button>
+  </div>
+  <script>
+    const defaultConfig = { cameraType: 'orthographic', near: 0.1, far: 100, light: 1 };
+    async function initConfigDialog() {
+      let config = defaultConfig;
+      if (window.ipcRenderer) {
+        try {
+          config = await window.ipcRenderer.invoke('get-config');
+        } catch (e) {}
+      }
+      document.getElementById('cameraType').value = config.cameraType || defaultConfig.cameraType;
+      document.getElementById('nearInput').value = config.near ?? defaultConfig.near;
+      document.getElementById('farInput').value = config.far ?? defaultConfig.far;
+      document.getElementById('lightInput').value = config.light ?? defaultConfig.light;
+    }
+    window.addEventListener('DOMContentLoaded', initConfigDialog);
+
+    function cancel() {
+      window.ipcRenderer.send('config-dialog-cancel');
+    }
+    function submit() {
+      const cameraType = document.getElementById('cameraType').value;
+      const near = parseFloat(document.getElementById('nearInput').value);
+      const far = parseFloat(document.getElementById('farInput').value);
+      const light = parseFloat(document.getElementById('lightInput').value);
+      window.ipcRenderer.send('config-dialog-submit', { cameraType, near, far, light });
+    }
+    function resetDefault() {
+      document.getElementById('cameraType').value = defaultConfig.cameraType;
+      document.getElementById('nearInput').value = defaultConfig.near;
+      document.getElementById('farInput').value = defaultConfig.far;
+      document.getElementById('lightInput').value = defaultConfig.light;
+      alert("デフォルト設定に戻しました。保存をクリックすると適用されます。")
+    }
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Center, OrthographicCamera } from '@react-three/drei'
 import { useState, Suspense, useEffect, useRef } from 'react';
+import { loadConfig } from './config';
 import * as THREE from 'three';
 
 // @ts-ignore
@@ -18,7 +19,7 @@ function createExportCamera() {
     0.1, 100      // near, far
   );
   
-  camera.position.set(-1, 0.825, -1);
+  camera.position.set(-1, 0.825, -1); // minecraft.wiki の作業台のサイズがこれぐらいだった
   camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
   return camera;
@@ -267,9 +268,9 @@ function CameraResetter() {
   
   useEffect(() => {
     (window as any).__resetCamera = () => {
-      camera.position.set(-1.0, 1.0, -1.0);
+      camera.position.set(-1, 0.825, -1);
       camera.lookAt(0, 0, 0);
-      camera.zoom = 1;
+      camera.zoom = 0.75;
       camera.updateProjectionMatrix();
       if (controls) {
         (controls as any).target.set(0, 0, 0);
@@ -281,7 +282,7 @@ function CameraResetter() {
   return null;
 }
 
-function ResponsiveOrthoCamera() {
+const ResponsiveOrthoCamera: React.FC<{ position: [number, number, number]; near: number; far: number; zoom?: number }> = ({ position, near, far, zoom = 0.75 }) => {
   const cameraRef = useRef<THREE.OrthographicCamera>(null);
 
   useFrame(({ camera, gl }) => {
@@ -306,13 +307,13 @@ function ResponsiveOrthoCamera() {
   return (
     <OrthographicCamera
       makeDefault
-      position={[-1, 0.825, -1]} // minecraft.wiki の作業台のサイズがこれぐらいだった
-      near={0.1}
-      far={100}
-      zoom={0.75}
+      position={position}
+      near={near}
+      far={far}
+      zoom={zoom}
     />
   );
-}
+};
 
 function App() {
   const [data, setData] = useState<{models: any, textureFiles: any} | null>(null);
@@ -321,6 +322,25 @@ function App() {
   const [themeMode, setThemeMode] = useState<'system' | 'dark' | 'light'>('system');
   const [isBatchExporting, setIsBatchExporting] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
+  // 設定管理
+  const defaultConfig = { cameraType: 'orthographic', near: 0.1, far: 100, light: 1 };
+  const [config, setConfig] = useState<{ cameraType: string; near: number; far: number; light: number }>(defaultConfig);
+
+  useEffect(() => {
+    (async () => {
+      const cfg = await loadConfig();
+      setConfig(cfg || defaultConfig);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!(window as any).ipcRenderer) return;
+    const handler = (_event: any, newConfig: any) => {
+      setConfig(newConfig);
+    };
+    const unsub = (window as any).ipcRenderer.on('config-updated', handler);
+    return () => { if (unsub) unsub(); };
+  }, []);
 
   useEffect(() => {
     const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -588,36 +608,42 @@ useEffect(() => {
             リセット
           </button>
         </div>
-        <Canvas 
-          key={canvasKey}
-          // camera={{ position: [-1.5, 1.5, -1.5] }} 
-          gl={{ 
-            antialias: false,
-            toneMapping: THREE.NoToneMapping,
-            toneMappingExposure: 1.0
-          }}
-          style={{ width: '100%', height: '100%' }}
-          resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-        >
-          <ResponsiveOrthoCamera />
-          <ambientLight intensity={1.0} />
-          <directionalLight position={[5, 10, 5]} intensity={1.5} />
-          <directionalLight position={[-5, -5, -5]} intensity={0.5} />
-          <directionalLight position={[0, -5, 0]} intensity={0.3} />
-          <Suspense fallback={null}>
-            <Center>
-              {data && selectedModel && (
-                <MCModel 
-                  data={data.models[selectedModel]} 
-                  textureMap={data.textureFiles} 
-                />
-              )}
-            </Center>
-          </Suspense>
-          <OrbitControls />
-          <CameraResetter />
-          <PNGExporter onExport={handlePNGData} format={"png"} />
-        </Canvas>
+        {config && (
+          <Canvas 
+            key={canvasKey}
+            gl={{ 
+              antialias: false,
+              toneMapping: THREE.NoToneMapping,
+              toneMappingExposure: 1.0
+            }}
+            style={{ width: '100%', height: '100%' }}
+            resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
+          >
+            {/* カメラ方式切替 */}
+            {config.cameraType === 'perspective' ? (
+              <perspectiveCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
+            ) : (
+              <ResponsiveOrthoCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
+            )}
+            <ambientLight intensity={config.light ?? 1.0} />
+            <directionalLight position={[5, 10, 5]} intensity={1.5} />
+            <directionalLight position={[-5, -5, -5]} intensity={0.5} />
+            <directionalLight position={[0, -5, 0]} intensity={0.3} />
+            <Suspense fallback={null}>
+              <Center>
+                {data && selectedModel && (
+                  <MCModel 
+                    data={data.models[selectedModel]} 
+                    textureMap={data.textureFiles} 
+                  />
+                )}
+              </Center>
+            </Suspense>
+            <OrbitControls />
+            <CameraResetter />
+            <PNGExporter onExport={handlePNGData} format={"png"} />
+          </Canvas>
+        )}
       </div>
     </div>
   );
