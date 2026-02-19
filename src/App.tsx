@@ -7,6 +7,23 @@ import * as THREE from 'three';
 // @ts-ignore
 import { MCModel } from './MCModel';
 
+/**
+ * エクスポート用の平行投影カメラを作成する
+ */
+function createExportCamera() {
+  const size = 0.8;
+  const camera = new THREE.OrthographicCamera(
+    -size, size,  // left, right
+    size, -size,  // top, bottom
+    0.1, 100      // near, far
+  );
+  
+  camera.position.set(-1, 0.825, -1);
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
+  return camera;
+}
+
 function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void; format: 'png' | 'jpg' | 'gif' }) {
   const { gl, scene, camera } = useThree();
   
@@ -20,16 +37,8 @@ function PNGExporter({ onExport, format }: { onExport: (dataUrl: string) => void
       _renderer.setSize(width, height);
       _renderer.setClearColor(0x000000, 0); // 透明背景
       
-      // 平行投影
-      const size = 0.8;
-      const _camera = new THREE.OrthographicCamera(
-        -size, size,  // left, right
-        size, -size,  // top, bottom
-        0.1, 100      // near, far
-      );
-      _camera.position.set(-1, 0.825, -1);
-      _camera.lookAt(0, 0, 0);
-      _camera.updateProjectionMatrix();
+      const _camera = createExportCamera();
+
       _renderer.render(scene, _camera);
       let mimeType: string;
       let quality = 0.95;
@@ -86,18 +95,9 @@ async function renderModelOffscreen(modelData: any, textureFiles: any, format: s
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.0;
   
-  // 平行投影
-  const size = 0.8;
-  const camera = new THREE.OrthographicCamera(
-    -size, size,
-    size, -size,
-    0.1, 100
-  );
-  camera.position.set(-1, 0.825, -1);
-  camera.lookAt(0, 0, 0);
-  camera.updateProjectionMatrix();
+  const camera = createExportCamera();
+
   renderer.render(scene, camera);
-  
   let mimeType: string;
   let quality = 0.95;
   
