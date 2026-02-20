@@ -181,7 +181,6 @@ jobs:
         with:
           files: |
             release/**/*.dmg
-            release/**/*.dmg.blockmap
             release/**/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -222,6 +221,5 @@ jobs:
           files: |
             release/**/*.AppImage
             release/**/*.deb
-            release/**/*.AppImage.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
