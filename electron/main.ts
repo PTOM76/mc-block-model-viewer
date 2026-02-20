@@ -431,7 +431,7 @@ function resolveFullModel(modelName: string, modModels: Record<string, any>, vis
   };
 }
 
-ipcMain.handle('save-png', async (_event, dataUrl: string, modelName: string) => {
+ipcMain.handle('save-image', async (_event, dataUrl: string, modelName: string) => {
   try {
     const mimeMatch = dataUrl.match(/^data:image\/([^;]+);base64,/)
     const detectedFormat = mimeMatch ? mimeMatch[1] : 'png';
@@ -501,7 +501,7 @@ ipcMain.handle('select-batch-output-folder', async () => {
   return batchOutputDir;
 });
 
-ipcMain.handle('save-png-batch', async (_event, { dataUrl, fileName, format }: { dataUrl: string; fileName: string; format?: string }) => {
+ipcMain.handle('save-image-batch', async (_event, { dataUrl, fileName, format }: { dataUrl: string; fileName: string; format?: string }) => {
   try {
     if (!batchOutputDir) {
       console.error('batchOutputDir が設定されていません');
