@@ -252,10 +252,10 @@ const App = () => {
                         ) : (
                             <ResponsiveOrthoCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
                         )}
-                        <ambientLight intensity={config.light ?? 1.0} />
-                        <directionalLight position={[5, 10, 5]} intensity={1.5} />
-                        <directionalLight position={[-5, -5, -5]} intensity={0.5} />
-                        <directionalLight position={[0, -5, 0]} intensity={0.3} />
+                        <ambientLight intensity={config.light ? config.light - 0.25 : 0.75} />
+                        <directionalLight position={[5, 10, 5]} intensity={1.75} />
+                        <directionalLight position={[5, 0, -5]} intensity={1.25} />
+                        {/* <directionalLight position={[0, -5, 0]} intensity={0.3} /> */}
                         <Suspense fallback={null}>
                         <Center>
                             {data && selectedModel && (

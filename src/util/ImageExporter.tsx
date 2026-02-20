@@ -65,17 +65,17 @@ export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string
 export async function renderModelOffscreen(modelData: any, textureFiles: any, format: string, width = 300, height = 300): Promise<string> {
   const scene = new Scene();
   
-  const ambientLight = new AmbientLight(0xffffff, 1.0);
+  const ambientLight = new AmbientLight(0xffffff, 0.75);
   scene.add(ambientLight);
-  const dirLight1 = new DirectionalLight(0xffffff, 1.5);
+  const dirLight1 = new DirectionalLight(0xffffff, 1.75);
   dirLight1.position.set(5, 10, 5);
   scene.add(dirLight1);
-  const dirLight2 = new DirectionalLight(0xffffff, 0.5);
-  dirLight2.position.set(-5, -5, -5);
+  const dirLight2 = new DirectionalLight(0xffffff, 1.25);
+  dirLight2.position.set(5, 0, -5);
   scene.add(dirLight2);
-  const dirLight3 = new DirectionalLight(0xffffff, 0.3);
-  dirLight3.position.set(0, -5, 0);
-  scene.add(dirLight3);
+  // const dirLight3 = new DirectionalLight(0xffffff, 0.3);
+  // dirLight3.position.set(0, -5, 0);
+  // scene.add(dirLight3);
   
   const modelGroup = await buildMCModelGroup(modelData, textureFiles);
   scene.add(modelGroup);
