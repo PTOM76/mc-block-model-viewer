@@ -48,14 +48,14 @@
     },
     "win": {
       "icon": "public/icon.ico",
-      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}",
+      "artifactName": "BlockModelViewer-Portable-${version}-${arch}.${ext}",
       "target": ["nsis", "zip"]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Block Model Viewer",
-      "artifactName": "${productName}-Installer-${version}-${arch}.${ext}"
+      "artifactName": "BlockModelViewer-Installer-${version}-${arch}.${ext}"
     },
     "mac": {
       "icon": "public/icon.icns",
@@ -64,14 +64,14 @@
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "BlockModelViewer-${version}-${arch}.${ext}"
     },
     "linux": {
       "icon": "public/icon.png",
       "target": ["AppImage", "deb"],
       "category": "Development",
       "maintainer": "Pitan <admin@pitan76.net>",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "BlockModelViewer-${version}-${arch}.${ext}"
     },
     "asar": true,
     "files": [
