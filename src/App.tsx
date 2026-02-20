@@ -306,6 +306,7 @@ useEffect(() => {
         )}
         
         {/* カメラ操作ボタン */}
+        {data && selectedModel && (<>
         <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, display: 'flex', gap: '5px' }}>
           <button 
             onClick={handleResetCamera} title={t('reset_camera_title')}
@@ -313,6 +314,9 @@ useEffect(() => {
             {t('reset')}
           </button>
         </div>
+        </>)}
+
+        {/* プレビュー */}
         {config && (
           <Canvas 
             key={canvasKey}

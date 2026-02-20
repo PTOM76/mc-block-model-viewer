@@ -20,7 +20,8 @@ function loadLang(lang: string) {
     _t = JSON.parse(fs.readFileSync(langPath, 'utf8'));
     t = (key: string) => _t[key] || key;
     currentLang = lang;
-  } catch {
+  } catch (error) {
+    console.error(`Failed to load language file for ${lang}:`, error);
     _t = {};
     t = (key: string) => key;
   }

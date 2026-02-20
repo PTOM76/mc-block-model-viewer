@@ -45,7 +45,7 @@
 	"help_menu": "Help",
 	"about": "About Block Model Viewer",
 	"about_title": "About Block Model Viewer",
-	"about_message": "Block Model Viewer\nVersion: 0.0.2\nAuthor: Pitan",
+	"about_message": "Block Model Viewer\nVersion: 0.0.3\nAuthor: Pitan",
 	"open_github": "Open GitHub Repository",
 	"file_format": "File Format",
 	"image_size": "Image Size",

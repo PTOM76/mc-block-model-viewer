@@ -1,7 +1,9 @@
 {
   "name": "mc-block-model-viewer",
+  "author": "Pitan",
+  "description": "A tool that can render Minecraft block models and export them as images",
   "private": true,
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -74,7 +76,8 @@
     "asar": true,
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "public/lang/**/*"
     ]
   }
 }
