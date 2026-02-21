@@ -1,20 +1,12 @@
 /// <reference path="./vite-env.d.ts" />
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Center } from '@react-three/drei'
-import { useState, Suspense, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { loadConfig } from './config';
 import { t, setLang } from './i18n';
-import * as THREE from 'three';
-
-// @ts-ignore
-import { MCModel } from './MCModel';
-
-import * as CameraUtil from './util/CameraUtil';
-import { ResponsiveOrthoCamera } from './util/ResponsiveOrthoCamera';
-import { ImageExporter, renderModelOffscreen } from './util/ImageExporter';
+import { renderModelOffscreen } from './util/ImageExporter';
 import SideBar from './parts/Sidebar';
 import CameraControlPanel from './parts/CameraConrtolPanel';
 import ExportingMessageOverlay from './parts/ExportingMessageOverlay';
+import Preview from './parts/Preview';
 
 const App = () => {
     const [data, setData] = useState<{models: any, textureFiles: any} | null>(null);
@@ -236,39 +228,7 @@ const App = () => {
 
                 {/* プレビュー */}
                 {config && (
-                    <Canvas 
-                        key={canvasKey}
-                        gl={{ 
-                        antialias: false,
-                        toneMapping: THREE.NoToneMapping,
-                        toneMappingExposure: 1.0
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-                    >
-                        {/* カメラ方式切替 */}
-                        {config.cameraType === 'perspective' ? (
-                            <perspectiveCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
-                        ) : (
-                            <ResponsiveOrthoCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
-                        )}
-                        <ambientLight intensity={config.light ?? 1.0} />
-                        <directionalLight position={[5, 10, 5]} intensity={2.0} />
-                        <directionalLight position={[5, 0, -5]} intensity={1.25} />
-                        {/* <directionalLight position={[0, -5, 0]} intensity={0.3} /> */}
-                        <Suspense fallback={null}>
-                        <Center>
-                            {data && selectedModel && (
-                            <MCModel 
-                                data={data.models[selectedModel]} 
-                                textureMap={data.textureFiles} 
-                            />)}
-                        </Center>
-                        </Suspense>
-                        <OrbitControls />
-                        <CameraUtil.CameraResetter />
-                        <ImageExporter onExport={handleImageData} format={"png"} />
-                    </Canvas>
+                    <Preview data={data} selectedModel={selectedModel} config={config} canvasKey={canvasKey} handleImageData={handleImageData}/>
                 )}
             </div>
         </div>
