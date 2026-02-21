@@ -20,16 +20,35 @@ cd mc-block-model-viewer
 
 2. Install dependencies:
 ```bash
+# Using Bun
 bun install
+
+# Using npm
+npm install
 ```
 
 3. Run the application for development:
 ```bash
+# Using Bun
 bun dev
+
+# Using npm
+npm run dev
 ```
 
 4. Build the application for production:
 ```bash
-bun build
+# Using Bun
+bun run build
 bun dist
+
+# Using npm
+npm run build
+npm run dist
+```
+
+## Publishing
+```
+git tag -a v0.0.0 -m "..."
+git push origin v0.0.0
 ```
