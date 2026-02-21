@@ -7,14 +7,14 @@ import * as THREE from 'three';
  * エクスポート用の平行投影カメラを作成する
  */
 export function createExportCamera() {
-  const size = 0.8;
+  const size = 0.794;
   const camera = new OrthographicCamera(
     -size, size,  // left, right
     size, -size,  // top, bottom
     0.1, 100      // near, far
   );
   
-  camera.position.set(-1, 0.825, -1); // minecraft.wiki の作業台のサイズがこれぐらいだった
+  camera.position.set(-1, 0.82, -1); // minecraft.wiki の作業台のサイズがこれぐらいだった
   camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
   return camera;

@@ -24,9 +24,9 @@ const Preview = ({data, selectedModel, config, canvasKey, handleImageData}: any)
         >
             {/* カメラ方式切替 */}
             {config.cameraType === 'perspective' ? (
-                <perspectiveCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
+                <perspectiveCamera position={[-1, 0.82, -1]} near={config.near} far={config.far} zoom={0.75} />
             ) : (
-                <ResponsiveOrthoCamera position={[-1, 0.825, -1]} near={config.near} far={config.far} zoom={0.75} />
+                <ResponsiveOrthoCamera position={[-1, 0.82, -1]} near={config.near} far={config.far} zoom={0.75} />
             )}
             <ambientLight intensity={config.light ?? 1.0} />
             <directionalLight position={[5, 10, 5]} intensity={2.0} />
