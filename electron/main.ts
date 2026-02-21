@@ -1,3 +1,4 @@
+import { clipboard, nativeImage } from 'electron';
 import { ipcMain as _ipcMain } from 'electron';
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import fs from 'fs';
@@ -294,6 +295,9 @@ const menubar: any = [
       { label: t('batch_export_menu'), accelerator: 'CmdOrCtrl+Shift+E', click: () => {
         createBatchExportDialog();
       }},
+      { label: t('export_image_to_clipboard'), accelerator: 'CmdOrCtrl+C', click: () => {
+        if (win) win.webContents.send('export-image-to-clipboard');
+      }},
       { type: 'separator' },
       { label: t('settings'), accelerator: 'CmdOrCtrl+,', click: () => {
         createConfigDialog();
@@ -530,6 +534,18 @@ ipcMain.handle('save-image-batch', async (_event, { dataUrl, fileName, format }:
     return true;
   } catch (error) {
     console.error('Image batch save error:', error);
+    return false;
+  }
+});
+
+// 画像データをクリップボードにコピー
+ipcMain.handle('copy-image-to-clipboard', async (_event, dataUrl: string) => {
+  try {
+    const image = nativeImage.createFromDataURL(dataUrl);
+    clipboard.writeImage(image);
+    return true;
+  } catch (error) {
+    console.error('クリップボードへの画像コピー失敗:', error);
     return false;
   }
 });

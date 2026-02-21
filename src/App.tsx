@@ -211,6 +211,27 @@ const App = () => {
         };
     }, [data]);
 
+        // クリップボードに画像出力
+    useEffect(() => {
+        const handleExportImageToClipboard = () => {
+            if (!selectedModel) {
+                alert(t('select_model_alert'));
+                return;
+            }
+            if ((window as any).__exportImage) {
+                (window as any).__exportImage(undefined, undefined, 'png', async (dataUrl: string) => {
+                    await window.ipcRenderer.invoke('copy-image-to-clipboard', dataUrl);
+                });
+            } else {
+                alert(t('canvas_not_ready'));
+            }
+        };
+        const unsubscribe = (window as any).ipcRenderer?.on('export-image-to-clipboard', handleExportImageToClipboard);
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [selectedModel]);
+
     return (
         <div style={{ width: '100%', height: '100vh', display: 'flex', background: "var(--bg-color)" }}>
             {/* 左側のサイドバー */}

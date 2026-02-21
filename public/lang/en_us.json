@@ -22,6 +22,7 @@
 	"export_image_now": "Just slap out an image for now",
 	"export_image_menu": "Export Image...",
 	"batch_export_menu": "Batch Export Images...",
+	"export_image_to_clipboard": "Export Image to Clipboard",
 	"settings": "Settings",
 	"exit": "Exit",
 	"edit_menu": "Edit",

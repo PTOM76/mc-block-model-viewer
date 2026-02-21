@@ -24,7 +24,7 @@ export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string
   const { gl, scene, camera } = useThree();
   
   useEffect(() => {
-    (window as any).__exportImage = (width = 300, height = 300, _format = format) => {
+    (window as any).__exportImage = (width = 300, height = 300, _format = format, callback?: (dataUrl: string) => void) => {
       const _renderer = new WebGLRenderer({ 
         antialias: false, 
         alpha: true,
@@ -55,7 +55,11 @@ export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string
       // クリーンアップ
       _renderer.dispose();
       
-      onExport(dataUrl);
+      if (callback) {
+        callback(dataUrl);
+      } else {
+        onExport(dataUrl);
+      }
     };
   }, [gl, scene, camera, onExport, format]);
   

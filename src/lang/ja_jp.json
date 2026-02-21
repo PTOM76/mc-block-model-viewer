@@ -22,6 +22,7 @@
 	"export_image_now": "とりあえず、画像出力",
 	"export_image_menu": "画像出力...",
 	"batch_export_menu": "一括画像出力...",
+	"export_image_to_clipboard": "クリップボードに画像出力",
 	"settings": "設定",
 	"exit": "終了",
 	"edit_menu": "編集",
