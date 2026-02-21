@@ -65,9 +65,9 @@ export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string
 export async function renderModelOffscreen(modelData: any, textureFiles: any, format: string, width = 300, height = 300): Promise<string> {
   const scene = new Scene();
   
-  const ambientLight = new AmbientLight(0xffffff, 0.75);
+  const ambientLight = new AmbientLight(0xffffff, 1.0);
   scene.add(ambientLight);
-  const dirLight1 = new DirectionalLight(0xffffff, 1.75);
+  const dirLight1 = new DirectionalLight(0xffffff, 2.0);
   dirLight1.position.set(5, 10, 5);
   scene.add(dirLight1);
   const dirLight2 = new DirectionalLight(0xffffff, 1.25);
