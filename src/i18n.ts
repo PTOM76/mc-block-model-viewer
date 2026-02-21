@@ -1,5 +1,5 @@
-import ja_jp from '../public/lang/ja_jp.json';
-import en_us from '../public/lang/en_us.json';
+import ja_jp from './lang/ja_jp.json';
+import en_us from './lang/en_us.json';
 
 const langs = {
     ja_jp,

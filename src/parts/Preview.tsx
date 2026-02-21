@@ -8,7 +8,7 @@ import { ImageExporter } from '../util/ImageExporter';
 import { OrbitControls } from "@react-three/drei";
 
 // @ts-ignore
-import { MCModel } from './MCModel';
+import { MCModel } from '../MCModel';
 
 const Preview = ({data, selectedModel, config, canvasKey, handleImageData}: any) => {
     return (
