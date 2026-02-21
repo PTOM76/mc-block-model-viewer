@@ -7,11 +7,11 @@ import SideBar from './parts/Sidebar';
 import CameraControlPanel from './parts/CameraConrtolPanel';
 import ExportingMessageOverlay from './parts/ExportingMessageOverlay';
 import Preview from './parts/Preview';
+import { useTheme } from './hooks/useTheme';
 
 const App = () => {
     const [data, setData] = useState<{models: any, textureFiles: any} | null>(null);
     const [selectedModel, setSelectedModel] = useState<string>("");
-    const [osPrefersDark, setOsPrefersDark] = useState(true);
     const [themeMode, setThemeMode] = useState<'system' | 'dark' | 'light'>('system');
     const [isBatchExporting, setIsBatchExporting] = useState(false);
     const [canvasKey, setCanvasKey] = useState(0);
@@ -19,79 +19,30 @@ const App = () => {
     const defaultConfig = { cameraType: 'orthographic', near: 0.1, far: 100, light: 1 };
     const [config, setConfig] = useState<{ cameraType: string; near: number; far: number; light: number }>(defaultConfig);
 
+    useTheme(themeMode, setThemeMode);
+
     useEffect(() => {
+        const applyConfig = (config: any) => {
+            setConfig(config || defaultConfig);
+            if (config?.lang) setLang(config.lang);
+        };
+
         (async () => {
-            const cfg = await loadConfig();
-            setConfig(cfg || defaultConfig);
-            if (cfg && cfg.lang) setLang(cfg.lang);
+            const config = await loadConfig();
+            applyConfig(config);
         })();
-    }, []);
 
-    useEffect(() => {
-        if (!(window as any).ipcRenderer) return;
-        const handler = (_event: any, newConfig: any) => {
-            setConfig(newConfig);
-            if (newConfig && newConfig.lang) setLang(newConfig.lang);
-        };
-        const unsub = (window as any).ipcRenderer.on('config-updated', handler);
-        return () => { 
-            if (unsub) unsub();
-        };
-    }, []);
+        window.ipcRenderer?.on('config-updated', (_e: any, newConfig: any) => applyConfig(newConfig));
 
-    useEffect(() => {
-        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setOsPrefersDark(darkModeQuery.matches);
-        
-        const handleThemeChange = (e: MediaQueryListEvent) => {
-            setOsPrefersDark(e.matches);
-        };
-        
-        darkModeQuery.addEventListener('change', handleThemeChange);
-        return () => darkModeQuery.removeEventListener('change', handleThemeChange);
-    }, []);
-
-    const isDark = themeMode === 'dark' || (themeMode === 'system' && osPrefersDark);
-
-    useEffect(() => {
-        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    }, [isDark]);
-
-    // メニューからのテーマ変更を受け取る
-    useEffect(() => {
-        if (!(window as any).ipcRenderer) {
-            console.error('ipcRenderer が見つかりません');
-            return;
-        }
-
-        const handleSetTheme = (_event: any, mode: string) => {
-            console.log('テーマ変更:', mode);
-            setThemeMode(mode as 'system' | 'dark' | 'light');
-        };
-
-        const unsubscribe = (window as any).ipcRenderer.on('set-theme', handleSetTheme);
-
-        return () => {
-            if (unsubscribe) unsubscribe();
-        };
-    }, []);
-
-    useEffect(() => {
         // メインプロセスのメニューから「jarを開く」が実行された時
-        const removeListener = (window as any).ipcRenderer.on('mod-data-extracted', (_event: any, result: any) => {
-            const merged = mergeData(data, result);
+        window.ipcRenderer?.on('mod-data-extracted', (_e: any, res: any) => {
+            const merged = mergeData(data, res);
             setData(merged);
-            if (!selectedModel || !merged.models[selectedModel]) {
-                setSelectedModel(Object.keys(merged.models)[0]);
-            }
-        });
 
-        return () => {
-            // クリーンアップ（リスナーの重複登録を防ぐ）
-            if (typeof removeListener === 'function') removeListener();
-        };
-    }, [data, selectedModel]);
+            const firstModel = Object.keys(merged.models)[0];
+            setSelectedModel(selectedModel && merged.models[selectedModel] ? selectedModel : firstModel);
+        });
+    }, []);
 
     const mergeData = (existing: {models: any, textureFiles: any} | null, newData: {models: any, textureFiles: any}) => {
         if (!existing) return newData;
@@ -211,7 +162,7 @@ const App = () => {
         };
     }, [data]);
 
-        // クリップボードに画像出力
+    // クリップボードに画像出力
     useEffect(() => {
         const handleExportImageToClipboard = () => {
             if (!selectedModel) {
