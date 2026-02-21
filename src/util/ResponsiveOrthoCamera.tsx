@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
 import  { FC, useRef } from 'react';
 
-export const ResponsiveOrthoCamera: FC<{ position: [number, number, number]; near: number; far: number; zoom?: number }> = ({ position, near, far, zoom = 0.75 }) => {
+const ResponsiveOrthoCamera: FC<{ position: [number, number, number]; near: number; far: number; zoom?: number }> = ({ position, near, far, zoom = 0.75 }) => {
   const cameraRef = useRef<THREE.OrthographicCamera>(null);
 
   useFrame(({ camera, gl }) => {
@@ -35,3 +35,5 @@ export const ResponsiveOrthoCamera: FC<{ position: [number, number, number]; nea
     />
   );
 };
+
+export default ResponsiveOrthoCamera;

@@ -1,14 +1,14 @@
 import { Canvas } from "@react-three/fiber";
-import { ResponsiveOrthoCamera } from "../util/ResponsiveOrthoCamera";
 import { Suspense } from "react";
 import { Center } from "@react-three/drei";
 import * as THREE from 'three';
-import * as CameraUtil from '../util/CameraUtil';
-import { ImageExporter } from '../util/ImageExporter';
+import CameraResetter from '../util/CameraResetter';
 import { OrbitControls } from "@react-three/drei";
 
 // @ts-ignore
 import { MCModel } from '../MCModel';
+import ResponsiveOrthoCamera from "../util/ResponsiveOrthoCamera";
+import ImageExporter from "../util/ImageExporter";
 
 const Preview = ({data, selectedModel, config, canvasKey, handleImageData}: any) => {
     return (
@@ -42,7 +42,7 @@ const Preview = ({data, selectedModel, config, canvasKey, handleImageData}: any)
             </Center>
             </Suspense>
             <OrbitControls />
-            <CameraUtil.CameraResetter />
+            <CameraResetter />
             <ImageExporter onExport={handleImageData} format={"png"} />
         </Canvas>
     );

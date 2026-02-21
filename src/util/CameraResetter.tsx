@@ -1,7 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
 
-export function CameraResetter() {
+const CameraResetter = () => {
   const { camera, controls } = useThree();
   
   useEffect(() => {
@@ -18,4 +18,6 @@ export function CameraResetter() {
   }, [camera, controls]);
   
   return null;
-}
+};
+
+export default CameraResetter;

@@ -20,7 +20,7 @@ export function createExportCamera() {
   return camera;
 }
 
-export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string) => void; format: 'png' | 'jpg' | 'gif' }) {
+const ImageExporter = ({ onExport, format }: { onExport: (dataUrl: string) => void; format: 'png' | 'jpg' | 'gif' }) => {
   const { gl, scene, camera } = useThree();
   
   useEffect(() => {
@@ -261,3 +261,5 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
   
   return group;
 }
+
+export default ImageExporter;
