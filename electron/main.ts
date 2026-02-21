@@ -7,8 +7,6 @@ import path from 'node:path'
 import AdmZip from 'adm-zip';
 import https from 'node:https';
 
-
-
 let _t: Record<string, string> = {};
 let t = (key: string) => key;
 let currentLang = 'ja_jp';
@@ -225,42 +223,60 @@ function createConfigDialog() {
   });
 }
 
-async function processJarImport() {
+async function processFileImport() {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Minecraft Mod', extensions: ['jar'] }]
+    filters: [
+      { name: 'jar, zip', extensions: ['jar', 'zip'] },
+      { name: 'json', extensions: ['json'] }
+    ]
   });
-
   if (canceled || filePaths.length === 0) return null;
 
   const allRawModels: Record<string, any> = {};
   const allTextureFiles: Record<string, string> = {};
 
   for (const filePath of filePaths) {
-    const zip = new AdmZip(filePath);
-    const zipEntries = zip.getEntries();
-
-    zipEntries.forEach((entry) => {
-      const name = entry.entryName;
-      // テクスチャ抽出
-      if (name.startsWith('assets/') && name.endsWith('.png')) {
-        const parts = name.split('/');
-        const modId = parts[1];
-        const texPath = parts.slice(3).join('/').replace('.png', '');
-        const base64 = `data:image/png;base64,${entry.getData().toString('base64')}`;
-        if (!allTextureFiles[`${modId}:${texPath}`]) allTextureFiles[`${modId}:${texPath}`] = base64;
-        if (!allTextureFiles[texPath]) allTextureFiles[texPath] = base64;
-        if (!allTextureFiles[path.basename(name, '.png')]) allTextureFiles[path.basename(name, '.png')] = base64;
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.json') {
+      // JSONファイルはモデルとして直接取り込む
+      try {
+        const modelData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const modelName = path.basename(filePath, '.json');
+        allRawModels[modelName] = modelData;
+      } catch (e) {
+        console.error('JSONモデル読み込み失敗:', filePath, e);
       }
-      // モデル抽出
-      if (name.startsWith('assets/') && name.includes('models/block/') && name.endsWith('.json')) {
-        const parts = name.split('/');
-        const modId = parts[1];
-        const modelPath = parts.slice(3).join('/').replace('.json', '');
-        const modelName = `${modId}:${modelPath}`;
-        if (!allRawModels[modelName]) allRawModels[modelName] = JSON.parse(entry.getData().toString('utf8'));
+    } else if (ext === '.jar' || ext === '.zip') {
+      // jar/zipはzipとして展開
+      try {
+        const zip = new AdmZip(filePath);
+        const zipEntries = zip.getEntries();
+        zipEntries.forEach((entry) => {
+          const name = entry.entryName;
+          // テクスチャ抽出
+          if (name.startsWith('assets/') && name.endsWith('.png')) {
+            const parts = name.split('/');
+            const modId = parts[1];
+            const texPath = parts.slice(3).join('/').replace('.png', '');
+            const base64 = `data:image/png;base64,${entry.getData().toString('base64')}`;
+            if (!allTextureFiles[`${modId}:${texPath}`]) allTextureFiles[`${modId}:${texPath}`] = base64;
+            if (!allTextureFiles[texPath]) allTextureFiles[texPath] = base64;
+            if (!allTextureFiles[path.basename(name, '.png')]) allTextureFiles[path.basename(name, '.png')] = base64;
+          }
+          // モデル抽出
+          if (name.startsWith('assets/') && name.includes('models/block/') && name.endsWith('.json')) {
+            const parts = name.split('/');
+            const modId = parts[1];
+            const modelPath = parts.slice(3).join('/').replace('.json', '');
+            const modelName = `${modId}:${modelPath}`;
+            if (!allRawModels[modelName]) allRawModels[modelName] = JSON.parse(entry.getData().toString('utf8'));
+          }
+        });
+      } catch (e) {
+        console.error('jar/zip展開失敗:', filePath, e);
       }
-    });
+    }
   }
 
   const finalModels: Record<string, any> = {};
@@ -272,15 +288,15 @@ async function processJarImport() {
 }
 
 ipcMain.handle('extract-mod-data', async () => {
-  return await processJarImport();
+  return await processFileImport();
 });
 
 const menubar: any = [
   {
     label: t('file_menu'),
     submenu: [
-      { label: t('open_jar_menu'), accelerator: 'CmdOrCtrl+O', click: async () => {
-          const result = await processJarImport();
+      { label: t('open_file'), accelerator: 'CmdOrCtrl+O', click: async () => {
+          const result = await processFileImport();
           if (result && win) {
             win.webContents.send('mod-data-extracted', result);
           }
