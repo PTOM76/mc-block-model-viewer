@@ -37,16 +37,47 @@ export function resolveUV(uv?: number[]): [number, number, number, number] {
 }
 
 /**
- * UVからThree.js Textureのrepeat/offsetを計算
+ * BoxGeometryのfaceの各頂点(TL, TR, BL, BRの4点)用のUV配列を返す
+ * @param uv [u1, v1, u2, v2]
+ * @param rotation 0/90/180/270
+ * @returns 要素数8の配列 (BoxGeometryのuvAttributeにおける該当面の8要素分)
  */
-export function getTextureTransform(uv: [number, number, number, number]) {
-  const repeat = {
-    x: (uv[2] - uv[0]) / 16,
-    y: (uv[3] - uv[1]) / 16,
-  };
-  const offset = {
-    x: uv[0] / 16,
-    y: 1 - uv[3] / 16,
-  };
-  return { repeat, offset };
+export function getFaceUVs(uv: [number, number, number, number], rotation: number = 0) {
+  const uL = uv[0] / 16;
+  const vT = 1.0 - uv[1] / 16;
+  const uR = uv[2] / 16;
+  const vB = 1.0 - uv[3] / 16;
+
+  if (rotation === 90) {
+    return [
+      uL, vB,  // TL
+      uL, vT,  // TR
+      uR, vB,  // BL
+      uR, vT   // BR
+    ];
+  }
+  if (rotation === 180) {
+    return [
+      uR, vB,  // TL
+      uL, vB,  // TR
+      uR, vT,  // BL
+      uL, vT   // BR
+    ];
+  }
+  if (rotation === 270) {
+    return [
+      uR, vT,  // TL
+      uR, vB,  // TR
+      uL, vT,  // BL
+      uL, vB   // BR
+    ];
+  }
+
+  // Default 0
+  return [
+    uL, vT,  // TL
+    uR, vT,  // TR
+    uL, vB,  // BL
+    uR, vB   // BR
+  ];
 }

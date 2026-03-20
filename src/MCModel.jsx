@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react'
 
 import * as THREE from 'three'
-import { lookupTexturePath, resolveTextureKey, resolveUV, getTextureTransform } from './util/MCModelBuilder';
+import { lookupTexturePath, resolveTextureKey, resolveUV, getFaceUVs } from './util/MCModelBuilder';
 
 const VANILLA_CUBE_ELEMENTS = [
   {
@@ -76,8 +76,6 @@ function MCElement({ element, textureMap, textures }) {
       const finalPath = resolveTextureKey(texKey, textures);
       const textureUrl = lookupTexturePath(finalPath, textureMap);
 
-      // console.log(`Face ${faceName}: texKey=${texKey}, finalPath=${finalPath}, url=${textureUrl?.substring(0, 50)}...`);
-
       const material = new THREE.MeshStandardMaterial({
         transparent: true,
         color: 0xffffff,
@@ -89,13 +87,8 @@ function MCElement({ element, textureMap, textures }) {
         loader.load(textureUrl, (tex) => {
           tex.magFilter = THREE.NearestFilter;
           tex.minFilter = THREE.NearestFilter;
-          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+          tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
           tex.colorSpace = THREE.SRGBColorSpace;
-
-          const uv = resolveUV(faceData.uv);
-          const { repeat, offset } = getTextureTransform(uv);
-          tex.offset.set(offset.x, offset.y);
-          tex.repeat.set(repeat.x, repeat.y);
 
           material.map = tex;
           material.needsUpdate = true;
@@ -106,6 +99,30 @@ function MCElement({ element, textureMap, textures }) {
     });
   }, [element, textures, textureMap]);
 
+  // BoxGeometryの作成とUVの適用
+  const geometry = useMemo(() => {
+    const geo = new THREE.BoxGeometry(width, height, depth);
+    const uvAttribute = geo.attributes.uv;
+
+    facesOrder.forEach((faceName, index) => {
+      const faceData = element.faces[faceName];
+      // index * 8 が該当面のUV配列の開始位置
+      const baseIdx = index * 8;
+      
+      if (faceData) {
+        const uvs = getFaceUVs(resolveUV(faceData.uv), faceData.rotation || 0);
+        for (let i = 0; i < 8; i++) {
+          uvAttribute.array[baseIdx + i] = uvs[i];
+        }
+      } else {
+        // 面が存在しない場合はUVを潰しておくなどの対応も可能
+      }
+    });
+
+    uvAttribute.needsUpdate = true;
+    return geo;
+  }, [width, height, depth, element]);
+
   // クリーンアップ
   useEffect(() => {
     return () => {
@@ -113,12 +130,12 @@ function MCElement({ element, textureMap, textures }) {
         if (mat.map) mat.map.dispose();
         mat.dispose();
       });
+      geometry.dispose();
     };
-  }, [materials]);
+  }, [materials, geometry]);
 
   return (
-    <mesh ref={meshRef} position={position} rotation={rotation} material={materials}>
-      <boxGeometry args={[width, height, depth]} />
+    <mesh ref={meshRef} position={position} rotation={rotation} geometry={geometry} material={materials}>
     </mesh>
   );
 }

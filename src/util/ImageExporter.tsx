@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { AmbientLight, DirectionalLight, NoToneMapping, OrthographicCamera, Scene, WebGLRenderer } from "three";
 
 import * as THREE from 'three';
-import { lookupTexturePath, resolveTextureKey, resolveUV, getTextureTransform } from './MCModelBuilder';
+import { lookupTexturePath, resolveTextureKey, resolveUV, getFaceUVs } from './MCModelBuilder';
 
 /**
  * エクスポート用の平行投影カメラを作成する
@@ -201,13 +201,8 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
           (texture) => {
             texture.magFilter = THREE.NearestFilter;
             texture.minFilter = THREE.NearestFilter;
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
             texture.colorSpace = THREE.SRGBColorSpace;
-
-            const uv = resolveUV(faceData.uv);
-            const { repeat, offset } = getTextureTransform(uv);
-            texture.repeat.set(repeat.x, repeat.y);
-            texture.offset.set(offset.x, offset.y);
 
             resolve(new THREE.MeshStandardMaterial({
               map: texture,
@@ -229,6 +224,22 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
     const materials = await Promise.all(materialPromises);
 
     const geometry = new THREE.BoxGeometry(width, height, depth);
+    const uvAttribute = geometry.attributes.uv;
+
+    facesOrder.forEach((faceName, index) => {
+      const faceData = element.faces[faceName];
+      const baseIdx = index * 8;
+      
+      if (faceData) {
+        const uvs = getFaceUVs(resolveUV(faceData.uv), faceData.rotation || 0);
+        for (let i = 0; i < 8; i++) {
+          uvAttribute.array[baseIdx + i] = uvs[i];
+        }
+      }
+    });
+
+    uvAttribute.needsUpdate = true;
+
     const mesh = new THREE.Mesh(geometry, materials);
     mesh.position.set(position[0], position[1], position[2]);
 
