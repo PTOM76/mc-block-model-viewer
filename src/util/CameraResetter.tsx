@@ -1,12 +1,12 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
 
-export function CameraResetter() {
+const CameraResetter = () => {
   const { camera, controls } = useThree();
   
   useEffect(() => {
     (window as any).__resetCamera = () => {
-      camera.position.set(-1, 0.825, -1);
+      camera.position.set(-1, 0.82, -1);
       camera.lookAt(0, 0, 0);
       camera.zoom = 0.75;
       camera.updateProjectionMatrix();
@@ -18,4 +18,6 @@ export function CameraResetter() {
   }, [camera, controls]);
   
   return null;
-}
+};
+
+export default CameraResetter;

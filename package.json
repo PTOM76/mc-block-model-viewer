@@ -3,7 +3,7 @@
   "author": "Pitan",
   "description": "A tool that can render Minecraft block models and export them as images",
   "private": true,
-  "version": "0.0.4",
+  "version": "0.0.5",
   "type": "module",
   "scripts": {
     "dev": "vite",

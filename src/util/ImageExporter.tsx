@@ -9,24 +9,24 @@ import { lookupTexturePath, resolveTextureKey, resolveUV, getFaceUVs } from './M
  * エクスポート用の平行投影カメラを作成する
  */
 export function createExportCamera() {
-  const size = 0.8;
+  const size = 0.794;
   const camera = new OrthographicCamera(
     -size, size,  // left, right
     size, -size,  // top, bottom
     0.1, 100      // near, far
   );
   
-  camera.position.set(-1, 0.825, -1); // minecraft.wiki の作業台のサイズがこれぐらいだった
+  camera.position.set(-1, 0.82, -1); // minecraft.wiki の作業台のサイズがこれぐらいだった
   camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
   return camera;
 }
 
-export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string) => void; format: 'png' | 'jpg' | 'gif' }) {
+const ImageExporter = ({ onExport, format }: { onExport: (dataUrl: string) => void; format: 'png' | 'jpg' | 'gif' }) => {
   const { gl, scene, camera } = useThree();
   
   useEffect(() => {
-    (window as any).__exportImage = (width = 300, height = 300, _format = format) => {
+    (window as any).__exportImage = (width = 300, height = 300, _format = format, callback?: (dataUrl: string) => void) => {
       const _renderer = new WebGLRenderer({ 
         antialias: false, 
         alpha: true,
@@ -57,7 +57,11 @@ export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string
       // クリーンアップ
       _renderer.dispose();
       
-      onExport(dataUrl);
+      if (callback) {
+        callback(dataUrl);
+      } else {
+        onExport(dataUrl);
+      }
     };
   }, [gl, scene, camera, onExport, format]);
   
@@ -67,9 +71,9 @@ export function ImageExporter({ onExport, format }: { onExport: (dataUrl: string
 export async function renderModelOffscreen(modelData: any, textureFiles: any, format: string, width = 300, height = 300): Promise<string> {
   const scene = new Scene();
   
-  const ambientLight = new AmbientLight(0xffffff, 0.75);
+  const ambientLight = new AmbientLight(0xffffff, 1.0);
   scene.add(ambientLight);
-  const dirLight1 = new DirectionalLight(0xffffff, 1.75);
+  const dirLight1 = new DirectionalLight(0xffffff, 2.0);
   dirLight1.position.set(5, 10, 5);
   scene.add(dirLight1);
   const dirLight2 = new DirectionalLight(0xffffff, 1.25);
@@ -256,3 +260,5 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
   
   return group;
 }
+
+export default ImageExporter;

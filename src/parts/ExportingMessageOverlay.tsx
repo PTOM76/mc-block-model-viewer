@@ -1,4 +1,4 @@
-const ExportingMessageOverlay = ({msg}: any) => {
+const ExportingMessageOverlay = ({msg}: {msg: string}) => {
     return (
         <div style={{
             position: 'absolute',
@@ -11,9 +11,7 @@ const ExportingMessageOverlay = ({msg}: any) => {
             borderRadius: '8px',
             zIndex: 100,
             fontSize: '18px'
-        }}>
-            {msg}
-        </div>
+        }}>{msg}</div>
     );
 };
 
