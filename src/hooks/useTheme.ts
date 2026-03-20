@@ -11,7 +11,7 @@ export const useTheme = (themeMode: 'system' | 'dark' | 'light', setThemeMode: (
     };
     applyTheme();
 
-    const handleChange = (e: MediaQueryListEvent) => applyTheme();
+    const handleChange = (_e: MediaQueryListEvent) => applyTheme();
     darkQuery.addEventListener('change', handleChange);
 
     const handleSetTheme = (_e: any, mode: string) => setThemeMode(mode as any);
