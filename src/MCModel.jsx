@@ -1,5 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react'
+
 import * as THREE from 'three'
+import { lookupTexturePath, resolveTextureKey, resolveUV, getTextureTransform } from './util/MCModelBuilder';
 
 const VANILLA_CUBE_ELEMENTS = [
   {
@@ -16,31 +18,7 @@ const VANILLA_CUBE_ELEMENTS = [
   }
 ];
 
-// テクスチャパス解決
-function lookupTexturePath(path, textureMap) {
-  if (!path) return null;
-  if (textureMap[path]) return textureMap[path];
-  const noMinecraft = path.replace('minecraft:', '');
-  if (textureMap[noMinecraft]) return textureMap[noMinecraft];
-  const onlyPath = noMinecraft.includes(':') ? noMinecraft.split(':')[1] : noMinecraft;
-  if (textureMap[onlyPath]) return textureMap[onlyPath];
-  const fileName = onlyPath.split('/').pop();
-  if (textureMap[fileName]) return textureMap[fileName];
-  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-}
 
-// #の変数を解決
-function resolveTextureKey(texKey, textures) {
-  let currentPath = textures[texKey] || texKey;
-  let safety = 0;
-  
-  while (typeof currentPath === 'string' && currentPath.startsWith('#') && safety < 10) {
-    const nextKey = currentPath.replace('#', '');
-    currentPath = textures[nextKey] || nextKey;
-    safety++;
-  }
-  return currentPath;
-}
 
 export function MCModel({ data, textureMap }) {
   if (!data) return null;
@@ -88,47 +66,42 @@ function MCElement({ element, textureMap, textures }) {
   // 各面のマテリアルを作成
   const materials = useMemo(() => {
     const loader = new THREE.TextureLoader();
-    
     return facesOrder.map((faceName) => {
       const faceData = element.faces[faceName];
       if (!faceData) {
         return new THREE.MeshStandardMaterial({ transparent: true, opacity: 0 });
       }
-      
+
       const texKey = faceData.texture.replace('#', '');
       const finalPath = resolveTextureKey(texKey, textures);
       const textureUrl = lookupTexturePath(finalPath, textureMap);
-      
-      console.log(`Face ${faceName}: texKey=${texKey}, finalPath=${finalPath}, url=${textureUrl?.substring(0, 50)}...`);
-      
+
+      // console.log(`Face ${faceName}: texKey=${texKey}, finalPath=${finalPath}, url=${textureUrl?.substring(0, 50)}...`);
+
       const material = new THREE.MeshStandardMaterial({
         transparent: true,
         color: 0xffffff,
         roughness: 1.0,
         metalness: 0.0,
       });
-      
+
       if (textureUrl) {
         loader.load(textureUrl, (tex) => {
           tex.magFilter = THREE.NearestFilter;
           tex.minFilter = THREE.NearestFilter;
           tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
           tex.colorSpace = THREE.SRGBColorSpace;
-          
-          if (faceData.uv) {
-            const u = faceData.uv[0] / 16;
-            const v = 1 - faceData.uv[3] / 16;
-            const w = (faceData.uv[2] - faceData.uv[0]) / 16;
-            const h = (faceData.uv[3] - faceData.uv[1]) / 16;
-            tex.offset.set(u, v);
-            tex.repeat.set(w, h);
-          }
-          
+
+          const uv = resolveUV(faceData.uv);
+          const { repeat, offset } = getTextureTransform(uv);
+          tex.offset.set(offset.x, offset.y);
+          tex.repeat.set(repeat.x, repeat.y);
+
           material.map = tex;
           material.needsUpdate = true;
         });
       }
-      
+
       return material;
     });
   }, [element, textures, textureMap]);

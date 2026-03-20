@@ -1,7 +1,9 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
 import { AmbientLight, DirectionalLight, NoToneMapping, OrthographicCamera, Scene, WebGLRenderer } from "three";
+
 import * as THREE from 'three';
+import { lookupTexturePath, resolveTextureKey, resolveUV, getTextureTransform } from './MCModelBuilder';
 
 /**
  * エクスポート用の平行投影カメラを作成する
@@ -158,28 +160,8 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
   const textures = modelData.textures || {};
   const group = new THREE.Group();
   
-  const lookupTexturePath = (path: string) => {
-    if (!path) return null;
-    if (textureFiles[path]) return textureFiles[path];
-    const noMinecraft = path.replace('minecraft:', '');
-    if (textureFiles[noMinecraft]) return textureFiles[noMinecraft];
-    const onlyPath = noMinecraft.includes(':') ? noMinecraft.split(':')[1] : noMinecraft;
-    if (textureFiles[onlyPath]) return textureFiles[onlyPath];
-    const fileName = onlyPath.split('/').pop() || '';
-    if (textureFiles[fileName]) return textureFiles[fileName];
-    return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-  };
-  
-  const resolveTextureKey = (texKey: string): string => {
-    let currentPath = textures[texKey] || texKey;
-    let safety = 0;
-    while (typeof currentPath === 'string' && currentPath.startsWith('#') && safety < 10) {
-      const nextKey = currentPath.replace('#', '');
-      currentPath = textures[nextKey] || nextKey;
-      safety++;
-    }
-    return currentPath;
-  };
+  // 共通関数を利用するため、textureMap引数をtextureFilesに合わせる
+  const textureMap = textureFiles;
   
   const loader = new THREE.TextureLoader();
   const facesOrder = ['east', 'west', 'up', 'down', 'south', 'north'];
@@ -189,13 +171,13 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
     const width = (element.to[0] - element.from[0]) / 16;
     const height = (element.to[1] - element.from[1]) / 16;
     const depth = (element.to[2] - element.from[2]) / 16;
-    
+
     const position = [
       (element.from[0] + (element.to[0] - element.from[0]) / 2 - 8) / 16,
       (element.from[1] + (element.to[1] - element.from[1]) / 2 - 8) / 16,
       (element.from[2] + (element.to[2] - element.from[2]) / 2 - 8) / 16
     ];
-    
+
     // 各面のテクスチャロードを並列実行
     const materialPromises = facesOrder.map((faceName) => {
       return new Promise<THREE.MeshStandardMaterial>((resolve) => {
@@ -204,11 +186,16 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
           resolve(new THREE.MeshStandardMaterial({ transparent: true, opacity: 0 }));
           return;
         }
-        
+
         const texKey = faceData.texture.replace('#', '');
-        const resolvedPath = resolveTextureKey(texKey);
-        const actualPath = lookupTexturePath(resolvedPath);
-        
+        const resolvedPath = resolveTextureKey(texKey, textures);
+        const actualPath = lookupTexturePath(resolvedPath, textureMap);
+
+        if (!actualPath) {
+          resolve(new THREE.MeshStandardMaterial({ transparent: true, opacity: 0 }));
+          return;
+        }
+
         loader.load(
           actualPath,
           (texture) => {
@@ -216,13 +203,14 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
             texture.minFilter = THREE.NearestFilter;
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
             texture.colorSpace = THREE.SRGBColorSpace;
-            
-            const uv = faceData.uv || [0, 0, 16, 16];
-            texture.repeat.set((uv[2] - uv[0]) / 16, (uv[3] - uv[1]) / 16);
-            texture.offset.set(uv[0] / 16, 1 - uv[3] / 16);
-            
-            resolve(new THREE.MeshStandardMaterial({ 
-              map: texture, 
+
+            const uv = resolveUV(faceData.uv);
+            const { repeat, offset } = getTextureTransform(uv);
+            texture.repeat.set(repeat.x, repeat.y);
+            texture.offset.set(offset.x, offset.y);
+
+            resolve(new THREE.MeshStandardMaterial({
+              map: texture,
               transparent: true,
               color: 0xffffff,
               roughness: 1.0,
@@ -237,13 +225,13 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
         );
       });
     });
-    
+
     const materials = await Promise.all(materialPromises);
-    
+
     const geometry = new THREE.BoxGeometry(width, height, depth);
     const mesh = new THREE.Mesh(geometry, materials);
     mesh.position.set(position[0], position[1], position[2]);
-    
+
     if (element.rotation) {
       const axis = element.rotation.axis;
       const angle = THREE.MathUtils.degToRad(element.rotation.angle);
@@ -251,7 +239,7 @@ async function buildMCModelGroup(modelData: any, textureFiles: any): Promise<THR
       if (axis === 'y') mesh.rotation.y = angle;
       if (axis === 'z') mesh.rotation.z = angle;
     }
-    
+
     group.add(mesh);
   }
   
